@@ -2,6 +2,8 @@
 import numpy as np
 import pandas as pd
 
+import torch 
+from torch.utils.data.dataset import Dataset
 
 class TCRDataset(Dataset):
     def __init__(self, inputs, targets):
