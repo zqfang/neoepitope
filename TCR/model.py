@@ -33,20 +33,20 @@ class MLP(nn.Module):
 
 # model 2
 class ImmunoRNN(nn.Module):
-    def __init__(self, seq_length, hidden_size, output_size, n_layers=1):
+    def __init__(self, seq_length, num_class, n_layers=1):
         super(ImmunoRNN, self).__init__()
         self.in_channel = 1 #input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
+        self.hidden_size = 512
+        self.output_size = num_class
         self.n_layers = n_layers
         self.seq_len = seq_length
 
-        self.c1 = nn.Conv1d(in_channels=1, out_channels=hidden_size, kernel_size=3)
+        self.c1 = nn.Conv1d(in_channels=1, out_channels=self.hidden_size, kernel_size=3)
         self.p1 = nn.AvgPool1d(2)
-        self.c2 = nn.Conv1d(hidden_size, hidden_size, 3)
+        self.c2 = nn.Conv1d(self.hidden_size, self.hidden_size, 3)
         self.p2 = nn.AvgPool1d(2)
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=0.01, bidirectional=True)
-        self.fc1 = nn.Linear(hidden_size*2, output_size) # biRNN: concat the bidirectional embeds
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size, n_layers, dropout=0.01, bidirectional=True)
+        self.fc1 = nn.Linear(self.hidden_size*2, num_class) # biRNN: concat the bidirectional embeds
 
     def forward(self, inputs, hidden=None):
         # input size: Batch, seq_len, input_size 
