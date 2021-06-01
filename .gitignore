@@ -1,0 +1,20 @@
+*.
+.project
+.pydevproject
+ABRF_DDA/*
+*.log
+build/*
+*.c
+*.so
+train/*
+# tests
+*ipynb
+*.ipynb_checkpoints
+*.pytest_cache
+*__pycache__ 
+*.vscode
+.DS_Store
+*.idea
+*.snakemake
+bin
+build
