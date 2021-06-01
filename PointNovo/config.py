@@ -81,7 +81,7 @@ vocab_reverse = ['A',
                  # 'Y(Phosphorylation)',
                  'V',
                  ]
-
+                 
 vocab_reverse = _START_VOCAB + vocab_reverse
 print("Training vocab_reverse ", vocab_reverse)
 
@@ -91,6 +91,7 @@ print("Training vocab ", vocab)
 vocab_size = len(vocab_reverse)
 print("Training vocab_size ", vocab_size)
 
+os.makedirs(train_dir, exist_ok=True)
 # database search parameter
 ## the PTMs to be included in the database search
 fix_mod_dict = {"C": "C(Carbamidomethylation)"}

@@ -3,7 +3,7 @@
 .pydevproject
 ABRF_DDA/*
 *.log
-build/*
+*build
 *.c
 *.so
 train/*
@@ -17,4 +17,3 @@ train/*
 *.idea
 *.snakemake
 bin
-build

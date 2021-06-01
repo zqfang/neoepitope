@@ -40,24 +40,6 @@ rule mzML2mgf:
         "python {params.path}/preprocess/mzml2mgf.py "
         "{input.mzml} {input.perlco} {output.mgf} {output.features} {jobid}"
 
-# rule cat_mgf:
-#     input: MGF
-#     output: "data/spectrums.mgf"
-#     shell:
-#         "cat {input.mgf} > {output.mgf}"
-
-# rule cat_features:
-#     input:
-#         features = FEATURES,
-#     output:
-#         features = "data/features.csv",
-#     run:
-#         feats = []
-#         for feat in input.features:
-#             f = pd.read_csv(feat, dtype=str)
-#             feats.append(f)
-#         feats = pd.concat(feats)
-#         feats.to_csv(output.features, index=False)
 
 rule mgf2location:
     """

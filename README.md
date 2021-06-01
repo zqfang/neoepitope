@@ -16,7 +16,37 @@ Deep learning models for immunopeptidome
 
 For database search you also need to install [percolator](http://percolator.ms/).
 
+## Data Preprocessing
+
+1. download peaks and percolator data from `MSV000082648`
+```
+   - |- MSV000082648
+       |- peaks
+       |- percolator
+```
+
+2. run `prepare_pointnovo.smk` to generate train, test, valid data
+  - makesure these two path is correct
+
+```
+smkpath = "/data/bases/fangzq/ImmunoRep/neoepitope"
+DATA = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+```
+run
+```
+snakemake -s prepare_pointnovo.smk -j 32 -p 
+```
+
 ## Neoantigen discovery
+
+1. train, valid, test
+```shell
+cd PointNovo
+# build cython extension
+python deepnovo_cython_setup.py build_ext --inplace
+# train
+python main.py --train
+```
 
 refer to PointNovo
 
