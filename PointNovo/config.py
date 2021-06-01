@@ -278,19 +278,19 @@ print("max_gradient_norm ", max_gradient_norm)
 
 
 data_format = "mgf"
-cleavage_rule = "trypsin"
+cleavage_rule = "trypsin"  ##
 num_missed_cleavage = 2
 knapsack_file = "ABRF_DDA/knapsack.npy"
-
-input_spectrum_file_train = "ABRF_DDA/spectrums.mgf"
-input_feature_file_train = "ABRF_DDA/features.csv.identified.train.nodup"
-input_spectrum_file_valid = "ABRF_DDA/spectrums.mgf"
-input_feature_file_valid = "ABRF_DDA/features.csv.identified.valid.nodup"
-input_spectrum_file_test = "data.training/dia.hla.elife.jurkat_oxford/testing_jurkat_oxford.spectrum.mgf"
-input_feature_file_test = "data.training/dia.hla.elife.jurkat_oxford/testing_jurkat_oxford.feature.csv"
+data_dir = "/data/bases/fangzq/ImmunoRep/data/MSV000082648/data"
+input_spectrum_file_train = os.path.join(data_dir, "spectrum.mgf")
+input_feature_file_train = os.path.join(data_dir, "features.csv.train.nodup")
+input_spectrum_file_valid = os.path.join(data_dir, "spectrum.mgf")
+input_feature_file_valid = os.path.join(data_dir, "features.csv.valid.nodup")
+input_spectrum_file_test = os.path.join(data_dir, "spectrum.mgf")
+input_feature_file_test = os.path.join(data_dir, "features.csv.test.nodup")
 # denovo files
-denovo_input_spectrum_file = "ABRF_DDA/spectrums.mgf"
-denovo_input_feature_file = "ABRF_DDA/features.csv.identified.test.nodup"
+denovo_input_spectrum_file = os.path.join(data_dir, "spectrum.mgf")
+denovo_input_feature_file = os.path.join(data_dir, "features.csv.denovo.nodup")
 denovo_output_file = denovo_input_feature_file + ".deepnovo_denovo"
 
 # db search files

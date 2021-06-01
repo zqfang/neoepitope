@@ -2,7 +2,9 @@
 
 import os, sys, glob
 import joblib
+import pandas as pd
 
+smkpath = "/data/bases/fangzq/ImmunoRep/PointNovo"
 DATA = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 workdir:  DATA
 
@@ -11,11 +13,11 @@ SAMPLES = [os.path.basename(m).replace(".mzML.gz", "") for m in mzML ]
 PERCOLATOR = ["percolator/{s}.percolator.target.peptides.txt"  for s in SAMPLES ]
 MGF = expand("mgf/{sample}.mgf", sample=SAMPLES)
 FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
-LOCATION = expand("mgf/{sample}.location.dict.pkl", sample=SAMPLES)
+LOCATION = "data/spectrum.mgf.location.pytorch.pkl"
 
 TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
 TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
-DATASETS = expand("datasets/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid', 'denovo'])
+DATASETS = expand("data/features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) # , 'denovo'])
 
 
 #################################################################
@@ -31,15 +33,40 @@ rule mzML2mgf:
     output:
         mgf = "mgf/{sample}.mgf",
         features = "mgf/{sample}.features.csv"
+    params:
+        path = smkpath
     shell:
-        "python mzml2mgf.py "
+        ## better to use hash, not jobid
+        "python {params.path}/preprocess/mzml2mgf.py "
         "{input.mzml} {input.perlco} {output.mgf} {output.features} {jobid}"
 
-rule mgf2location:
-    input: 
-        mgf = "mgf/{sample}.mgf"
+rule cat_mgf:
+    input: MGF
+    output: "data/spectrums.mgf"
+    shell:
+        "cat {input.mgf} > {output.mgf}"
+
+rule cat_features:
+    input:
+        features = FEATURES,
     output:
-        loc = "mgf/{sample}.location.dict.pkl"
+        features = "data/features.csv",
+    run:
+        feats = []
+        for feat in input.features:
+            f = pd.read_csv(feat, dtype=str)
+            feats.append(f)
+        feats = pd.concat(feats)
+        feats.to_csv(output.features, index=False)
+
+rule mgf2location:
+    """
+    This step is really slow, and it will be very slow train, test.
+    """
+    input: 
+        mgf = "data/spectrums.mgf"
+    output:
+        loc = "data/spectrums.mgf.location.pytorch.pkl"
     run:
         spectrum_location_dict = {}
         line = True
@@ -56,15 +83,17 @@ rule mgf2location:
 
         joblib.dump(spectrum_location_dict, output.loc)
 
-
 rule train_val_test:
-    input:  "mgf/{sample}.features.csv"
+    input:  "data/features.csv"
     output:
-        train =  "datasets/{sample}.features.csv.train.nodup",
-        valid =  "datasets/{sample}.features.csv.valid.nodup",
-        test =  "datasets/{sample}.features.csv.test.nodup",
-        denovo = "datasets/{sample}.features.csv.denovo",
+        train =  "data/features.csv.train.nodup",
+        valid =  "data/features.csv.valid.nodup",
+        test =  "data/features.csv.test.nodup",
+        denovo = "data/features.csv.denovo.nodup",
     params:
-        ratio = [0.8, 0.1, 0.1]
+        ratio = [0.8, 0.1, 0.1],
+        path = smkpath
     shell:
-        "python train_val_test.py {input} datasets"
+        "python {params.path}/preprocess/train_val_test.py {input} data"
+
+

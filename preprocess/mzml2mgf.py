@@ -67,7 +67,7 @@ def parse(msdata, perlocator: pd.DataFrame, mgf, writer, sampleID=""):
                           z=spectrum.getPrecursors()[0].getCharge(), 
                           rt_mean=spectrum.getRT(), 
                           seq=seq, 
-                          scan=scan
+                          scan=scanID,
                           )
 
         writer.writerow(feature.to_list())

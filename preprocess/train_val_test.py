@@ -76,7 +76,7 @@ def main(feature_csv, outdir, ratio = [0.8,0.1,0.1], random_state=42):
     train.to_csv( os.path.join(outdir, filename + ".train.nodup"), index=False)
     val.to_csv( os.path.join(outdir, filename + ".valid.nodup"), index=False)
     test.to_csv( os.path.join(outdir, filename +  ".test.nodup"), index=False)
-    df1.to_csv( os.path.join(outdir, filename + ".denovo"), index=False)
+    df1.to_csv( os.path.join(outdir, filename + ".denovo.nodup"), index=False)
 
 if __name__ == '__main__':
     inp = sys.argv[1]
