@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os, glob
 import numpy as np
 import argparse
 from itertools import combinations
@@ -281,17 +282,20 @@ data_format = "mgf"
 cleavage_rule = "trypsin"  ##
 num_missed_cleavage = 2
 knapsack_file = "ABRF_DDA/knapsack.npy"
-data_dir = "/data/bases/fangzq/ImmunoRep/data/MSV000082648/data"
-input_spectrum_file_train = os.path.join(data_dir, "spectrum.mgf")
-input_feature_file_train = os.path.join(data_dir, "features.csv.train.nodup")
-input_spectrum_file_valid = os.path.join(data_dir, "spectrum.mgf")
-input_feature_file_valid = os.path.join(data_dir, "features.csv.valid.nodup")
-input_spectrum_file_test = os.path.join(data_dir, "spectrum.mgf")
-input_feature_file_test = os.path.join(data_dir, "features.csv.test.nodup")
+data_dir = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+data_spectrums = sorted(glob.glob(os.path.join(data_dir, "mgf/train_*mgf")))
+data_samples = [os.path.basename(spec).replace(".mgf", "") for spec in data_spectrums]
+
+input_spectrum_file_train = data_spectrums
+input_feature_file_train = [f"{data_dir}/features/{sample}.features.csv.train.nodup" for sample in data_samples]
+input_spectrum_file_valid = data_spectrums
+input_feature_file_valid = [f"{data_dir}/features/{sample}.features.csv.valid.nodup" for sample in data_samples]
+input_spectrum_file_test = data_spectrums
+input_feature_file_test = [f"{data_dir}/features/{sample}.features.csv.test.nodup" for sample in data_samples]
 # denovo files
-denovo_input_spectrum_file = os.path.join(data_dir, "spectrum.mgf")
-denovo_input_feature_file = os.path.join(data_dir, "features.csv.denovo.nodup")
-denovo_output_file = denovo_input_feature_file + ".deepnovo_denovo"
+denovo_input_spectrum_file = data_spectrums
+denovo_input_feature_file = [f"{data_dir}/features/{sample}.features.csv.denovo.nodup" for sample in data_samples]
+denovo_output_file = [denovo + ".deepnovo_denovo" for denovo in denovo_input_feature_file ] 
 
 # db search files
 search_db_input_spectrum_file = "Lumos_data/PXD008999/export_0.mgf"
@@ -303,10 +307,10 @@ predicted_format = "deepnovo"
 target_file = denovo_input_feature_file
 predicted_file = denovo_output_file
 
-accuracy_file = predicted_file + ".accuracy"
-denovo_only_file = predicted_file + ".denovo_only"
-scan2fea_file = predicted_file + ".scan2fea"
-multifea_file = predicted_file + ".multifea"
+accuracy_file = [ pred + ".accuracy" for pred in predicted_file ]
+denovo_only_file = [ pred + ".denovo_only" for pred in predicted_file ]
+scan2fea_file =  [ pred + ".scan2fea" for pred in predicted_file ]
+multifea_file =  [ pred + ".multifea" for pred in predicted_file ]
 # ==============================================================================
 # feature file column format
 col_feature_id = "spec_group_id"

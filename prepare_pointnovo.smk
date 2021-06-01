@@ -6,19 +6,19 @@ import pandas as pd
 
 smkpath = "/data/bases/fangzq/ImmunoRep/PointNovo"
 DATA = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
-workdir:  DATA
+workdir:  DATA # working directory
 
 mzML = glob.glob(os.path.join(DATA, "peaks/*gz"))
 SAMPLES = [os.path.basename(m).replace(".mzML.gz", "") for m in mzML ]
+
 PERCOLATOR = ["percolator/{s}.percolator.target.peptides.txt"  for s in SAMPLES ]
 MGF = expand("mgf/{sample}.mgf", sample=SAMPLES)
 FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
-LOCATION = "data/spectrum.mgf.location.pytorch.pkl"
+LOCATION = expand("mgf/{sample}.mgf.location.pytorch.pkl", sample=SAMPLES)
 
 TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
 TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
-DATASETS = expand("data/features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) # , 'denovo'])
-
+DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) # , 'denovo'])
 
 #################################################################
 
@@ -40,33 +40,33 @@ rule mzML2mgf:
         "python {params.path}/preprocess/mzml2mgf.py "
         "{input.mzml} {input.perlco} {output.mgf} {output.features} {jobid}"
 
-rule cat_mgf:
-    input: MGF
-    output: "data/spectrums.mgf"
-    shell:
-        "cat {input.mgf} > {output.mgf}"
+# rule cat_mgf:
+#     input: MGF
+#     output: "data/spectrums.mgf"
+#     shell:
+#         "cat {input.mgf} > {output.mgf}"
 
-rule cat_features:
-    input:
-        features = FEATURES,
-    output:
-        features = "data/features.csv",
-    run:
-        feats = []
-        for feat in input.features:
-            f = pd.read_csv(feat, dtype=str)
-            feats.append(f)
-        feats = pd.concat(feats)
-        feats.to_csv(output.features, index=False)
+# rule cat_features:
+#     input:
+#         features = FEATURES,
+#     output:
+#         features = "data/features.csv",
+#     run:
+#         feats = []
+#         for feat in input.features:
+#             f = pd.read_csv(feat, dtype=str)
+#             feats.append(f)
+#         feats = pd.concat(feats)
+#         feats.to_csv(output.features, index=False)
 
 rule mgf2location:
     """
-    This step is really slow, and it will be very slow train, test.
+    This step is really slow, and it will be very slow when train or test.
     """
     input: 
-        mgf = "data/spectrums.mgf"
+        mgf = "mgf/{sample}.mgf",
     output:
-        loc = "data/spectrums.mgf.location.pytorch.pkl"
+        loc = "mgf/{sample}.mgf.location.pytorch.pkl"
     run:
         spectrum_location_dict = {}
         line = True
@@ -84,16 +84,17 @@ rule mgf2location:
         joblib.dump(spectrum_location_dict, output.loc)
 
 rule train_val_test:
-    input:  "data/features.csv"
+    input:   "mgf/{sample}.features.csv"
     output:
-        train =  "data/features.csv.train.nodup",
-        valid =  "data/features.csv.valid.nodup",
-        test =  "data/features.csv.test.nodup",
-        denovo = "data/features.csv.denovo.nodup",
+        train =  "features/{sample}.features.csv.train.nodup",
+        valid =  "features/{sample}.features.csv.valid.nodup",
+        test =  "features/{sample}.features.csv.test.nodup",
+        denovo = "features/{sample}.features.csv.denovo.nodup",
     params:
         ratio = [0.8, 0.1, 0.1],
-        path = smkpath
+        path = smkpath,
+        outdir = "features"
     shell:
-        "python {params.path}/preprocess/train_val_test.py {input} data"
+        "python {params.path}/preprocess/train_val_test.py {input} {params.outdir}"
 
 

@@ -187,6 +187,7 @@ class BaseDataset(Dataset):
                                          mass=mass,
                                          feature_area=line[feature_area_index])
                 self.feature_list.append(new_feature)
+                
         logger.info(f"read {len(self.feature_list)} features, {skipped_by_mass} skipped by mass, "
                     f"{skipped_by_ptm} skipped by unknown modification, {skipped_by_length} skipped by length")
 
