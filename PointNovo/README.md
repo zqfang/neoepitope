@@ -1,9 +1,10 @@
 
 
-# Neoepitope
+# PointNovo
 
 This is a fork of [PointNovo](https://github.com/volpato30/PointNovo).   
-This repo will be refactored for other purpose.
+
+**NOTE**: This repo will be refactor for neoantigen discovery.
 
 Please refer to PointNovo to get details.
 
