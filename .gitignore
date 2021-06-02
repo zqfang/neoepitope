@@ -6,7 +6,7 @@ ABRF_DDA/*
 *build
 *.c
 *.so
-train/*
+*train
 # tests
 *ipynb
 *.ipynb_checkpoints
@@ -16,4 +16,5 @@ train/*
 .DS_Store
 *.idea
 *.snakemake
+*.pth
 bin

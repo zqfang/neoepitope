@@ -16,6 +16,7 @@ Deep learning models (Pytorch) for cancer immunology
 - scikit-learn
 - biopython
 - pyteomics
+- pyopenms
 - cython
 - snakemake
 
@@ -35,7 +36,7 @@ e.g. Tmuor HLA peptides (MSV000082648)
 ```
 
 2. run `prepare_pointnovo.smk` to generate train, test, valid data
-  - makesure these two path is correct
+  - makesure these two paths are correct
 
 ```
 smkpath = "/data/bases/fangzq/ImmunoRep/neoepitope"
@@ -48,7 +49,7 @@ snakemake -s prepare_pointnovo.smk -j 32 -p
 
 ### Train and predict
 
-1. train, valid, test
+1. train, valid
 ```shell
 cd PointNovo
 # build cython extension
@@ -57,6 +58,13 @@ python deepnovo_cython_setup.py build_ext --inplace
 # set correct data path in config.py first, then
 # train
 python main.py --train
+```
+
+2. test
+```shell
+# denovo search first, then test
+python main.py --search_denovo
+python main.py --test
 ```
 
 ## Tumor classificatiton

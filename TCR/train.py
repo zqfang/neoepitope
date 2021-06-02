@@ -8,7 +8,7 @@ from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data.dataset import Dataset
+
 from torch.utils.data.dataloader import DataLoader
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -42,8 +42,6 @@ test_data = TCRDataset(X_test, y_test)
 print("Prepare DataLoader ")
 train_loader = DataLoader(train_data, batch_size=batch_size, num_workers= num_workers)#sampler=train_sampler, num_workers=1 )# sampler=SubsetRandomSampler() )
 test_loader =  DataLoader(test_data, batch_size=batch_size, num_workers= num_workers)
-
-
 
 
 print("Build Model")
