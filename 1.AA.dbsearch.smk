@@ -85,84 +85,144 @@
 #       export_9.csv, export_9.mgf
 #       export_10.csv, export_10.mgf
 
+#####################################################################################################################
+#
+# workflow using comet + percolator for neoantigen discovery
+#
+#####################################################################################################################
+## use openMS
+## comet + percolator
 
-## use openMS 
-## conda install -c conda-forge -c bioconda openms openms-thirdparty pyopenms
-PROT_DB = "SequenceDatabase_MSV000084172/PA_ucsc_proteome_259contams_viruses_26tumorShared.fasta"
-PROT_DB_DECOY = "SequenceDatabase_MSV000084172/PA_ucsc_proteome_259contams_viruses_26tumorShared.decoy.fasta"
+## conda install -c conda-forge -c bioconda openms openms-thirdparty pyopenms comet percolator
 
-PERCOLATOR = ""
+SAMPLES = []
+
+PROT_DB = "uniprot_sprot.fasta.gz"
+CONTAMINANT = "UniProt.viruses.humannr.fasta" # download containinants from MSV000084172
+TARGET_DECOY = "target.decoy.fasta"
+PERCOLATOR = expand("{sample}_perc.tsv", sample=SAMPLES)
+
+####### OpenMS
+## for Fido: Search Engine -> PeptideIndexer -> IDPosteriorProbability -> Fido adapter.
+## for percolator: Search Engine -> PeptideIndexer (comet/MSGFPlus..) 
+##                 -> (FalseDiscoveryRate) -> PSMFeatureExtractor -> PercolatorAdapter -> IDFilter.
+######
+
 
 rule target:
     input: PERCOLATOR
 
+rule DecoyDatabase:
+    """
+    generate target decopy database
+    """
+    input: 
+        proteome = PROT_DB,
+        contaminant = CONTAMINANT,
+    output: 
+        TARGET_DECOY
+    params:
+        enzyme = 'unspecific cleavage'
+    threads: 6
+    shell:
+        "DecoyDatabase -in {input.proteome} {input.contaminat} "
+        "-out {output} -threads {threads} " # -only_decoy
+        # "-enzyme '{params.enzyme} ' # <- won't work
 
-rule cometAdaptor:
+rule CometAdaptor:
     """
     database search using comet
     """
     input:
         mzML = "{sample}.mzML.gz",
-        prot_db_fasta = PROT_DB,
+        fasta = TARGET_DECOY, 
     output:
-        idXML = "{sample}.pin.idXML",
-        percolator_in = "{sample}.pin.tsv",
+        idXML = "{sample}_comet.idXML",
+        #percolator_in = "{sample}.comet.pin.tsv",
     params: 
        enzyme = 'unspecific cleavage'
     threads: 16
     output:
     shell:
-        "CometAdapter -in {input.mzML} -database {input.prot_db_fasta} "
-        "-pin_out {output.percolator_in} -out {output.idXML} "
+        "CometAdapter -in {input.mzML} -database {input.fasta} " # include target and decoy
+        "-out {output.idXML} " # -pin_out {output.percolator_in}
         "-threads {threads} -enzyme '{params.enzyme}' "
 
-rule decoyBuild:
-    """
-    generate decopy database for percolator
-    """
-    input: PROT_DB
-    output: PROT_DB_DECOY
-    params:
-        enzyme = 'unspecific cleavage'
-    threads: 6
+
+# IDPosteriorErrorProbability
+rule calc_peptide_posterior_error:
+    input:
+        idxml = "{sample}_comet.idXML"
+    output:
+        idxml = temp("{sample}_idpep.idXML")
+    threads: 1
+    log:  'log/idpep_{}.log'
     shell:
-        "DecoyDatabase -in {input} -out {output} " # -only_decoy
-        # "-enzyme '{params.enzyme} ' # <- won't work
+        "IDPosteriorErrorProbability "
+        "-in {input.idxml} -out {output.idxml} -debug 10 "
+        "-threads {threads} {params.debug} 2>&1 | tee {log} "
+
+rule PeptideIndexer:
+    input: 
+        idxml = "{sample}_idpep.idXML",
+        fasta = TARGET_DECOY,
+    output: 
+        temp("{sample}_pi.idXML")
+    threads: 1
+    shell:
+        "PeptideIndexer -in {input} -out {output} -fasta {input.fasta} "
+        "-allow_unmatched -IL_equivalent -enzyme:specificity none "
         "-threads {threads} "
 
 
-rule percolatorAdapter:
+rule FalseDiscoveryRate:
+    input:  "{sample}_pi.idXML"
+    output: temp("{sample}_fdr.idXML")
+    threads: 1
+    shell:
+        "FalseDiscoveryRate -in {input} -out {output} "
+        "-algorithm:add_decoy_peptides "
+        "-threads {threads} "
+        
+rule PSMFeatureExtractor:
+    input: "{sample}_fdr.idXML"
+    output: temp("{sample}_fdr_psm.idXML")
+    threads: 12
+    shell:
+        "PSMFeatureExtractor -in {input} -out {output} -threads {threads}"
+
+rule PercolatorAdapter:
     """
     protein identification from shotgun proteomics datasets
     """
-    input: 
-        pin = "{sample}.pin.idXML",
-        decoy = PROT_DB_DECOY,
-    output:
-        "{sample}.percolator.out.idXML""
+    input: "{sample}_fdr_psm.idXML",
+    output: "{sample}_perc.idXML"
     params:
         enzyme = 'no_enzyme'
+        decoy_prefix = "DECOY"
     threads: 6
     shell:
-        "PercolatorAdapter -in {input.pin} -in_decoy {input.decoy} "
-        "-out {output} "
+        "PercolatorAdapter -in {input} -out {output} "
+        "-debug 10  -trainFDR 0.05 -testFDR 0.05 "
+        "-decoy-pattern {params.decoy_prefix} "
         "-enzyme {params.enzyme} -threads {threads}"
 
-
-rule percolatorAdapter:
-    """
-    protein identification from shotgun proteomics datasets
-    """
-    input: 
-        pin = "{sample}.pin.tsv",
-        decoy = PROT_DB_DECOY,
-    output:
-        "{sample}.percolator.out.xml"
-    params:
-        enzyme = 'no_enzyme'
-    threads: 6
+# IDFilter
+# Remove unmatched peptides (decoys)
+rule filter_peptides:
+    input: "{sample}_perc.idXML"
+    output: "{sample}_perc_filt.idXML"
+    threads: 1
     shell:
-        "percolator --xmloutput {ouput} " # or -X
-        "--protein-enzyme {params.enzyme} "
-        "--num-threads {threads} "
-        "{input.pin} " # -in_decoy {input.decoy}
+        "IDFilter -in {input} -out {output} "
+        "-score:pep 0.0 -threads {threads} "
+        # "-delete_unreferenced_peptide_hits "
+
+rule MzTabExporter:
+    """Exports various XML formats to an mzTab file"""
+    input: "{sample}_perc_filt.idXML"
+    output: "{sample}_perc.tsv"
+    threads: 1
+    priority: 53
+    shell:
+        "MzTabExporter -in {input} -out {ouput} "

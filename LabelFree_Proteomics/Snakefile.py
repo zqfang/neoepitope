@@ -43,6 +43,8 @@ for search in config["search_engines"]:
 include: "rules/search_post_processing.py"
 
 # Perform Protein Inference
+## Fido has now been integrated into Percolator
+## use percolator instead
 include: "rules/fido.py"
 
 # Perfrom Feature Finding
@@ -59,4 +61,3 @@ include: "rules/spectral_counts.py"
 
 # Finalize script
 include: "rules/onsuccess.py"
-
