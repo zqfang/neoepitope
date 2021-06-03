@@ -1,7 +1,8 @@
 # Snakemake Workflow for Label-free proteomics
 This project contains a snakemake workflow that uses the OpenMS (ver 2.3.0) toolset to obtain relativer protein intensities and spectral counts for MS/MS data.
 
-https://bitbucket.org/snakemake/snakemake
+
+see label-free proteomics source code [here](https://github.com/mafreitas/snakemake_lablefree_proteomics)
 
 ## Authors
 
