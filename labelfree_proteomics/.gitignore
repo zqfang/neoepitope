@@ -1,0 +1,13 @@
+*/.ipynb_checkpoints/*
+.ipynb_checkpoints
+._Snakefile.py
+ftp.peptideatlas.org/
+.snakemake/
+work/
+mzml/
+fasta/
+raw/
+logs/
+csv/
+*.out
+benchmarks.txt
