@@ -94,11 +94,16 @@
 ## comet + percolator
 
 ## conda install -c conda-forge -c bioconda openms openms-thirdparty pyopenms comet percolator
+import os, glob 
 
-SAMPLES = []
+
+workdir: "/data/bases/fangzq/ImmunoRep/data"
+# MZML = glob.glob("MSV000082648/peaks/test_*.mzML.gz")
+
+SAMPLES = ["test_sample_0_ms_run_0"] 
 
 PROT_DB = "uniprot_sprot.fasta.gz"
-CONTAMINANT = "UniProt.viruses.humannr.fasta" # download containinants from MSV000084172
+CONTAMINANT = "UniProtContams_259_20170206.fasta" # download containinants from MSV000084172
 TARGET_DECOY = "target.decoy.fasta"
 PERCOLATOR = expand("{sample}_perc.tsv", sample=SAMPLES)
 
@@ -118,15 +123,19 @@ rule DecoyDatabase:
     """
     input: 
         proteome = PROT_DB,
-        contaminant = CONTAMINANT,
+        contams = CONTAMINANT,
     output: 
         TARGET_DECOY
     params:
-        enzyme = 'unspecific cleavage'
+        enzyme = 'unspecific cleavage',
+        decoy_string = "DECOY_",
+        decoy_string_position = "prefix",
     threads: 6
     shell:
-        "DecoyDatabase -in {input.proteome} {input.contaminat} "
-        "-out {output} -threads {threads} " # -only_decoy
+        "DecoyDatabase -in {input.proteome} {input.contams} "
+        "-out {output} -threads {threads} "
+        "-decoy_string {params.decoy_string} "
+        "-decoy_string_position {params.decoy_string_position} "
         # "-enzyme '{params.enzyme} ' # <- won't work
 
 rule CometAdaptor:
@@ -134,7 +143,7 @@ rule CometAdaptor:
     database search using comet
     """
     input:
-        mzML = "{sample}.mzML.gz",
+        mzML = "{sample}.mzML",
         fasta = TARGET_DECOY, 
     output:
         idXML = "{sample}_comet.idXML",
@@ -156,11 +165,11 @@ rule calc_peptide_posterior_error:
     output:
         idxml = temp("{sample}_idpep.idXML")
     threads: 1
-    log:  'log/idpep_{}.log'
+    log:  'log/idpep_{sample}.log'
     shell:
         "IDPosteriorErrorProbability "
         "-in {input.idxml} -out {output.idxml} -debug 10 "
-        "-threads {threads} {params.debug} 2>&1 | tee {log} "
+        "-threads {threads} 2>&1 | tee {log} "
 
 rule PeptideIndexer:
     input: 
@@ -198,7 +207,7 @@ rule PercolatorAdapter:
     input: "{sample}_fdr_psm.idXML",
     output: "{sample}_perc.idXML"
     params:
-        enzyme = 'no_enzyme'
+        enzyme = 'no_enzyme',
         decoy_prefix = "DECOY"
     threads: 6
     shell:
@@ -225,4 +234,4 @@ rule MzTabExporter:
     threads: 1
     priority: 53
     shell:
-        "MzTabExporter -in {input} -out {ouput} "
+        "MzTabExporter -in {input} -out {output} "

@@ -141,7 +141,7 @@ class DeepNovoPointNetWithLSTM(nn.Module):
     def forward(self, location_index, peaks_location, peaks_intensity, aa_input=None, state_tuple=None):
         """
 
-        :param location_index: [batch, T, 26, 8] long
+        :param location_index: [batch, T, 26, 8] long => T: theoretical location
         :param peaks_location: [batch, N] N stands for MAX_NUM_PEAK, long
         :param peaks_intensity: [batch, N], float32
         :param aa_input:[batch, T]
@@ -156,7 +156,7 @@ class DeepNovoPointNetWithLSTM(nn.Module):
 
         peaks_location = peaks_location.view(batch_size, 1, N, 1)
         peaks_intensity = peaks_intensity.view(batch_size, 1, N, 1)
-        peaks_location = peaks_location.expand(-1, T, -1, -1)  # [batch, T, N, 1]
+        peaks_location = peaks_location.expand(-1, T, -1, -1)  # [batch, T, N, 1], expand => repeat elements, -1: no change size of that dim
         peaks_location_mask = (peaks_location > 1e-5).float()
         peaks_intensity = peaks_intensity.expand(-1, T, -1, -1)  # [batch, T, N, 1]
 

@@ -1,17 +1,3 @@
-import os
-
-from deepnovo_preprocess import *
-from deepnovo_postprocess import *
-import aa_workflow_step_4_2
-import aa_workflow_step_5
-
-
-data_fasta_dir = "data.fasta/"
-patient_id = "Mel16"
-data_training_dir = "data.training/aa.hla.bassani.nature_2016.mel_16.class_1/"
-num_fractions = 11
-model_dir = "train.mel_16.class_1" # before training, create this empty folder at the same level as Python scripts.
-
 
 # ================================================================================
 # Step 2: Train personalized DeepNovo model.
@@ -24,7 +10,20 @@ model_dir = "train.mel_16.class_1" # before training, create this empty folder a
 # ================================================================================
 # Step 2.1: Prepare the training data.
 # ================================================================================
+import os, glob, sys 
 
+include: "preprocess/denovo_preprocess.py"
+include: "preprocess/denovo_postprocess.py"
+
+import aa_workflow_step_4_2
+import aa_workflow_step_5
+
+
+data_fasta_dir = "data.fasta/"
+patient_id = "Mel16"
+data_training_dir = "data.training/aa.hla.bassani.nature_2016.mel_16.class_1/"
+num_fractions = 11
+model_dir = "train.mel_16.class_1" # before training, create this empty folder at the same level as Python scripts.
   
 # Run merge_mgf_file() and merge_feature_file()
 # ======================= UNCOMMENT and RUN ======================================
