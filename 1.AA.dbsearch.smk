@@ -102,7 +102,7 @@ workdir: "/data/bases/fangzq/ImmunoRep/data"
 
 SAMPLES = ["test_sample_0_ms_run_0"] 
 
-PROT_DB = "uniprot_sprot.fasta.gz"
+PROT_DB = "PA_ucsc_proteome.fasta"
 CONTAMINANT = "UniProtContams_259_20170206.fasta" # download containinants from MSV000084172
 TARGET_DECOY = "target.decoy.fasta"
 PERCOLATOR = expand("{sample}_perc.tsv", sample=SAMPLES)
@@ -156,6 +156,10 @@ rule CometAdaptor:
         "CometAdapter -in {input.mzML} -database {input.fasta} " # include target and decoy
         "-out {output.idXML} " # -pin_out {output.percolator_in}
         "-threads {threads} -enzyme '{params.enzyme}' "
+        "-precursor_mass_tolerance 10 "
+        "-precursor_error_units ppm "
+        "-allowed_missed_cleavages 3 "
+        #"-fixed_modifications 'Carbamidomethyl (C)' "
 
 
 # IDPosteriorErrorProbability
@@ -165,11 +169,11 @@ rule calc_peptide_posterior_error:
     output:
         idxml = temp("{sample}_idpep.idXML")
     threads: 1
-    log:  'log/idpep_{sample}.log'
+    #log:  'log/idpep_{sample}.log'
     shell:
         "IDPosteriorErrorProbability "
         "-in {input.idxml} -out {output.idxml} -debug 10 "
-        "-threads {threads} 2>&1 | tee {log} "
+        "-threads {threads} "# 2>&1 | tee {log} "
 
 rule PeptideIndexer:
     input: 
@@ -179,9 +183,14 @@ rule PeptideIndexer:
         temp("{sample}_pi.idXML")
     threads: 1
     shell:
-        "PeptideIndexer -in {input} -out {output} -fasta {input.fasta} "
-        "-allow_unmatched -IL_equivalent -enzyme:specificity none "
+        "PeptideIndexer -in {input.idxml} -out {output} -fasta {input.fasta} "
+        "-IL_equivalent "#-enzyme:specificity none "
+        "-decoy_string DECOY_ "
+        "-missing_decoy_action warn "
+        "-decoy_string_position prefix "
         "-threads {threads} "
+        "-enzyme:specificity none "
+        "-enzyme:name 'unspecific cleavage' "
 
 
 rule FalseDiscoveryRate:
@@ -190,7 +199,7 @@ rule FalseDiscoveryRate:
     threads: 1
     shell:
         "FalseDiscoveryRate -in {input} -out {output} "
-        "-algorithm:add_decoy_peptides "
+        "-algorithm:add_decoy_peptides "# -force
         "-threads {threads} "
         
 rule PSMFeatureExtractor:
@@ -208,12 +217,12 @@ rule PercolatorAdapter:
     output: "{sample}_perc.idXML"
     params:
         enzyme = 'no_enzyme',
-        decoy_prefix = "DECOY"
+        decoy_prefix = "DECOY_"
     threads: 6
     shell:
         "PercolatorAdapter -in {input} -out {output} "
         "-debug 10  -trainFDR 0.05 -testFDR 0.05 "
-        "-decoy-pattern {params.decoy_prefix} "
+        "-decoy_pattern {params.decoy_prefix} "
         "-enzyme {params.enzyme} -threads {threads}"
 
 # IDFilter

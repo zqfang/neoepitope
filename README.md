@@ -11,14 +11,23 @@ Deep learning models (Pytorch) for cancer immunology
 3. binding affinity model (inspired by [tcellmatch](https://github.com/theislab/tcellmatch)): TODO
 
 ## Dependency
-- python >= 3.7
-- pytorch >= 1.0
-- scikit-learn
-- biopython
-- pyteomics
-- pyopenms
-- cython
-- snakemake
+1. proteomics
+  - openms
+  - pyopenms
+  - biopython
+  - comet
+  - percolator
+  - snakemake
+
+2. de novo sequencing 
+   - python >= 3.7
+   - pytorch >= 1.0
+   - scikit-learn
+   - biopython
+   - pyteomics
+   - pyopenms
+   - cython
+
 
 For protein database search you also need to install [percolator](http://percolator.ms/).
 
