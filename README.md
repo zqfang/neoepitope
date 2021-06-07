@@ -3,7 +3,9 @@
 # Neoepitope
 Deep learning models (Pytorch) for cancer immunology 
 
-1. Neoantigen discovery using immunopeptidome: [PointNovo](https://github.com/volpato30/PointNovo)
+1. Neoantigen discovery based on immunopeptidome: 
+    - Database Search: Comet + Percolator workflow -> [MHCquant](https://github.com/Leon-Bichmann/MHCquant)
+    - De novo search: [PointNovo](https://github.com/volpato30/PointNovo)
 2. Antibody drug discovery:
    - tumor classification using tcr/bcr (inspired by [DeepBCR](https://bitbucket.org/liulab/deepbcr) ): TODO
    - other
@@ -12,12 +14,12 @@ Deep learning models (Pytorch) for cancer immunology
 
 ## Dependency
 1. proteomics
-  - openms
-  - pyopenms
-  - biopython
-  - comet
-  - percolator
-  - snakemake
+   - openms
+   - pyopenms
+   - biopython
+   - comet
+   - percolator
+   - snakemake
 
 2. de novo sequencing 
    - python >= 3.7
@@ -28,8 +30,6 @@ Deep learning models (Pytorch) for cancer immunology
    - pyopenms
    - cython
 
-
-For protein database search you also need to install [percolator](http://percolator.ms/).
 
 ## Neoantigen discovery
 
