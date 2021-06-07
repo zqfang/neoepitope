@@ -1,3 +1,6 @@
 [submodule "MHCquant"]
 	path = MHCquant
 	url = https://github.com/Leon-Bichmann/MHCquant
+[submodule "LabelFreeProteomics"]
+	path = LabelFreeProteomics
+	url = https://github.com/mafreitas/snakemake_lablefree_proteomics
