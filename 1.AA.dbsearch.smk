@@ -139,16 +139,16 @@ rule DecoyDatabase:
         "-enzyme '{params.enzyme}' " # <- won't work
 
 
-# rule PeakPicker:
-#     """optional"""
-#     input: "raw.mzML"
-#     output: "picked.mzML"
-#     params:
-#         pick_ms_levels="2"
-#     shell:
-#         "PeakPickerHiRes -in ${mzml_unpicked} "
-#         "-out ${mzml_unpicked.baseName}.mzML "
-#         "-algorithm:ms_levels ${params.pick_ms_levels}"
+rule PeakPicker:
+    """optional"""
+    input: "{sample}.mzML", 
+    output: temp("{sample}.picked.mzML"),
+    params:
+        pick_ms_levels="2"
+    shell:
+        "PeakPickerHiRes -in {input} "
+        "-out {output}.picked.mzML "
+        "-algorithm:ms_levels ${params.pick_ms_levels}"
 
 
 rule CometAdaptor:
@@ -156,10 +156,10 @@ rule CometAdaptor:
     database search using comet
     """
     input:
-        mzML = "{sample}.mzML",
+        mzML = "{sample}.picked.mzML",
         fasta = TARGET_DECOY, 
     output:
-        idXML = "{sample}_comet.idXML",
+        idXML = protected("{sample}_comet.idXML"),
         #percolator_in = "{sample}.comet.pin.tsv",
     params: 
        enzyme = 'unspecific cleavage'
@@ -199,7 +199,7 @@ rule PeptideIndexer:
         idxml = "{sample}_idpep.idXML",
         fasta = TARGET_DECOY,
     output: 
-        "{sample}_pi.idXML"
+        temp("{sample}_pi.idXML")
     params:
         decoy_string = "DECOY_",
         decoy_position = "prefix", 
@@ -223,13 +223,13 @@ rule FalseDiscoveryRate:
     log:  'log/fdr_{sample}.log'
     shell:
         "FalseDiscoveryRate -in {input} -out {output} "
-        "-algorithm:add_decoy_peptides "# -force
-        "-protein 'false' "
+        "-algorithm:add_decoy_peptides "
+        "-protein 'false' " # this argument is important
         "-threads {threads} 2>&1 | tee {log} "
         
         
 rule PSMFeatureExtractor:
-    input: "{sample}_pi.idXML"
+    input: "{sample}_fdr.idXML"
     output: temp("{sample}_fdr_psm.idXML")
     threads: 12
     shell:
@@ -240,23 +240,27 @@ rule PercolatorAdapter:
     protein identification from shotgun proteomics datasets
     """
     input: "{sample}_fdr_psm.idXML",
-    output: "{sample}_perc.idXML"
+    output: protected("{sample}_perc.idXML")
     params:
         enzyme = 'no_enzyme',
-        decoy_prefix = "DECOY_"
+        decoy_prefix = "DECOY_",
+        description_correct_features = 0,
+        subet_max_train = 0
     threads: 6
     log:  'log/percolator_{sample}.log'
     shell:
         "PercolatorAdapter -in {input} -out {output} "
-        "-debug 10  -trainFDR 0.05 -testFDR 0.05 "
+        "-debug 10 -trainFDR 0.05 -testFDR 0.05 "
         "-decoy_pattern {params.decoy_prefix} "
         "-enzyme {params.enzyme} -threads {threads} "
+        "-subset_max_train {params.subet_max_train} "
+        "-doc {params.description_correct_features} "
         "2>&1 | tee {log}"
 
 
 # filter by percolator q-value
 rule filter_peptides:
-    input: "{sample}_perc_fdr.idXML"
+    input: "{sample}_perc.idXML"
     output: "{sample}_perc_filt.idXML"
     params:
         fdr = 0.01,
