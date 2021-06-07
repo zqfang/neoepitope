@@ -102,10 +102,10 @@ workdir: "/data/bases/fangzq/ImmunoRep/data"
 
 SAMPLES = ["test_sample_0_ms_run_0"] 
 
-PROT_DB = "PA_ucsc_proteome.fasta"
+PROT_DB = "uniprot_sprot.fasta"
 CONTAMINANT = "UniProtContams_259_20170206.fasta" # download containinants from MSV000084172
 TARGET_DECOY = "target.decoy.fasta"
-PERCOLATOR = expand("{sample}_perc.tsv", sample=SAMPLES)
+PERCOLATOR = expand("{sample}_perc.mzTab", sample=SAMPLES)
 
 ####### OpenMS
 ## for Fido: Search Engine -> PeptideIndexer -> IDPosteriorProbability -> Fido adapter.
@@ -127,7 +127,7 @@ rule DecoyDatabase:
     output: 
         TARGET_DECOY
     params:
-        enzyme = 'unspecific cleavage',
+        enzyme = 'no cleavage', #'unspecific cleavage',
         decoy_string = "DECOY_",
         decoy_string_position = "prefix",
     threads: 6
@@ -136,7 +136,20 @@ rule DecoyDatabase:
         "-out {output} -threads {threads} "
         "-decoy_string {params.decoy_string} "
         "-decoy_string_position {params.decoy_string_position} "
-        # "-enzyme '{params.enzyme} ' # <- won't work
+        "-enzyme '{params.enzyme}' " # <- won't work
+
+
+# rule PeakPicker:
+#     """optional"""
+#     input: "raw.mzML"
+#     output: "picked.mzML"
+#     params:
+#         pick_ms_levels="2"
+#     shell:
+#         "PeakPickerHiRes -in ${mzml_unpicked} "
+#         "-out ${mzml_unpicked.baseName}.mzML "
+#         "-algorithm:ms_levels ${params.pick_ms_levels}"
+
 
 rule CometAdaptor:
     """
@@ -156,10 +169,16 @@ rule CometAdaptor:
         "CometAdapter -in {input.mzML} -database {input.fasta} " # include target and decoy
         "-out {output.idXML} " # -pin_out {output.percolator_in}
         "-threads {threads} -enzyme '{params.enzyme}' "
-        "-precursor_mass_tolerance 10 "
+        "-precursor_mass_tolerance 5 "
         "-precursor_error_units ppm "
-        "-allowed_missed_cleavages 3 "
+        "-fragment_bin_tolerance 0.02 "
+        "-fragment_bin_offset 0 "
+        "-num_hits 1 "
+        "-max_variable_mods_in_peptide 3"
+        "-activation_method 'ALL' "
+        "-missed_cleavages 0 "
         #"-fixed_modifications 'Carbamidomethyl (C)' "
+        "-variable_modifications 'Oxidation (M)' "
 
 
 # IDPosteriorErrorProbability
@@ -169,41 +188,48 @@ rule calc_peptide_posterior_error:
     output:
         idxml = temp("{sample}_idpep.idXML")
     threads: 1
-    #log:  'log/idpep_{sample}.log'
+    log:  'log/idpep_{sample}.log'
     shell:
         "IDPosteriorErrorProbability "
         "-in {input.idxml} -out {output.idxml} -debug 10 "
-        "-threads {threads} "# 2>&1 | tee {log} "
+        "-threads {threads}  2>&1 | tee {log} "
 
 rule PeptideIndexer:
     input: 
         idxml = "{sample}_idpep.idXML",
         fasta = TARGET_DECOY,
     output: 
-        temp("{sample}_pi.idXML")
+        "{sample}_pi.idXML"
+    params:
+        decoy_string = "DECOY_",
+        decoy_position = "prefix", 
+    log:  'log/pi_{sample}.log'
     threads: 1
     shell:
         "PeptideIndexer -in {input.idxml} -out {output} -fasta {input.fasta} "
         "-IL_equivalent "#-enzyme:specificity none "
-        "-decoy_string DECOY_ "
+        "-decoy_string {params.decoy_string} "
         "-missing_decoy_action warn "
-        "-decoy_string_position prefix "
+        "-decoy_string_position {params.decoy_position} "
         "-threads {threads} "
         "-enzyme:specificity none "
         "-enzyme:name 'unspecific cleavage' "
-
+        "2>&1 | tee {log} "
 
 rule FalseDiscoveryRate:
     input:  "{sample}_pi.idXML"
     output: temp("{sample}_fdr.idXML")
     threads: 1
+    log:  'log/fdr_{sample}.log'
     shell:
         "FalseDiscoveryRate -in {input} -out {output} "
         "-algorithm:add_decoy_peptides "# -force
-        "-threads {threads} "
+        "-protein 'false' "
+        "-threads {threads} 2>&1 | tee {log} "
+        
         
 rule PSMFeatureExtractor:
-    input: "{sample}_fdr.idXML"
+    input: "{sample}_pi.idXML"
     output: temp("{sample}_fdr_psm.idXML")
     threads: 12
     shell:
@@ -219,27 +245,32 @@ rule PercolatorAdapter:
         enzyme = 'no_enzyme',
         decoy_prefix = "DECOY_"
     threads: 6
+    log:  'log/percolator_{sample}.log'
     shell:
         "PercolatorAdapter -in {input} -out {output} "
         "-debug 10  -trainFDR 0.05 -testFDR 0.05 "
         "-decoy_pattern {params.decoy_prefix} "
-        "-enzyme {params.enzyme} -threads {threads}"
+        "-enzyme {params.enzyme} -threads {threads} "
+        "2>&1 | tee {log}"
 
-# IDFilter
-# Remove unmatched peptides (decoys)
+
+# filter by percolator q-value
 rule filter_peptides:
-    input: "{sample}_perc.idXML"
+    input: "{sample}_perc_fdr.idXML"
     output: "{sample}_perc_filt.idXML"
+    params:
+        fdr = 0.01,
     threads: 1
     shell:
         "IDFilter -in {input} -out {output} "
-        "-score:pep 0.0 -threads {threads} "
-        # "-delete_unreferenced_peptide_hits "
+        "-score:pep {params.fdr} -threads {threads} "
+        "-delete_unreferenced_peptide_hits "
+        "-remove_decoys "
 
 rule MzTabExporter:
     """Exports various XML formats to an mzTab file"""
     input: "{sample}_perc_filt.idXML"
-    output: "{sample}_perc.tsv"
+    output: "{sample}_perc.mzTab"
     threads: 1
     priority: 53
     shell:

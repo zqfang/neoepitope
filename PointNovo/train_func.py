@@ -229,6 +229,7 @@ def train():
     best_epoch = None
     best_step = None
     start_time = time.time()
+    logger.info(f"Training start time: {start_time}")
     for epoch in range(config.num_epoch):
         # so, each sample will be train
         m = 0
@@ -323,5 +324,8 @@ def train():
                 # observed that most of gpu memory is unoccupied cache, so clear cache after each batch
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
-
+    
     logger.info(f"best model at epoch {best_epoch} step {best_step}")
+
+    end_time = time.time()
+    logger.info(f"training end time: {end_time}")
