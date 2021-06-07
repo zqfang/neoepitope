@@ -37,7 +37,7 @@ rule mzML2mgf:
         path = smkpath
     shell:
         ## better to use hash, not jobid
-        "python {params.path}/preprocess/mzml2mgf.py "
+        "python {params.path}/rules/mzml2mgf.py "
         "{input.mzml} {input.perlco} {output.mgf} {output.features} {jobid}"
 
 
@@ -92,6 +92,6 @@ rule train_val_test:
         path = smkpath,
         outdir = "features"
     shell:
-        "python {params.path}/preprocess/train_val_test.py {input} {params.outdir}"
+        "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
 
 

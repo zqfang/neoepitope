@@ -99,7 +99,7 @@ import os, glob
 
 workdir: "/data/bases/fangzq/ImmunoRep/data"
 # MZML = glob.glob("MSV000082648/peaks/test_*.mzML.gz")
-
+# SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
 SAMPLES = ["test_sample_0_ms_run_0"] 
 
 PROT_DB = "uniprot_sprot.fasta"
@@ -107,11 +107,11 @@ CONTAMINANT = "UniProtContams_259_20170206.fasta" # download containinants from 
 TARGET_DECOY = "target.decoy.fasta"
 PERCOLATOR = expand("{sample}_perc.mzTab", sample=SAMPLES)
 
-####### OpenMS
+####### OpenMS MHC workflow #########################################################
 ## for Fido: Search Engine -> PeptideIndexer -> IDPosteriorProbability -> Fido adapter.
-## for percolator: Search Engine -> PeptideIndexer (comet/MSGFPlus..) 
-##                 -> (FalseDiscoveryRate) -> PSMFeatureExtractor -> PercolatorAdapter -> IDFilter.
-######
+## for Percolator: Search Engine (comet/MSGFPlus..) -> PeptideIndexer > FalseDiscoveryRate 
+##                   -> PSMFeatureExtractor -> PercolatorAdapter -> IDFilter.
+#####################################################################################
 
 
 rule target:
@@ -166,7 +166,7 @@ rule CometAdaptor:
     threads: 16
     output:
     shell:
-        "CometAdapter -in {input.mzML} -database {input.fasta} " # include target and decoy
+        "CometAdapter -in {input.mzML} -database {input.fasta} "
         "-out {output.idXML} " # -pin_out {output.percolator_in}
         "-threads {threads} -enzyme '{params.enzyme}' "
         "-precursor_mass_tolerance 5 "
@@ -207,7 +207,7 @@ rule PeptideIndexer:
     threads: 1
     shell:
         "PeptideIndexer -in {input.idxml} -out {output} -fasta {input.fasta} "
-        "-IL_equivalent "#-enzyme:specificity none "
+        "-IL_equivalent "
         "-decoy_string {params.decoy_string} "
         "-missing_decoy_action warn "
         "-decoy_string_position {params.decoy_position} "
@@ -263,7 +263,7 @@ rule filter_peptides:
     input: "{sample}_perc.idXML"
     output: "{sample}_perc_filt.idXML"
     params:
-        fdr = 0.01,
+        fdr = 0.01, # fdr threshold
     threads: 1
     shell:
         "IDFilter -in {input} -out {output} "

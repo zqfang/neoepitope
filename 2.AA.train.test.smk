@@ -1,30 +1,31 @@
+import os, glob, sys 
+
+workdir: "/data/bases/fangzq/ImmunoRep/data"
+
+SAMPLES = []
+FEATURES = expand("features/{sample}.features.csv.{dat}.nodup", sample=SAMPLES, dat = ['train','test','valid','denovo'])
+WEIGHTS = ["train/forward_deepnovo.pth","train/backwad_deepnovo.pth"]
+
+
 
 # ================================================================================
-# Step 2: Train personalized DeepNovo model.
+# Step 2: Train personalized PointNovo model.
 # ================================================================================
+include: "rules/aa_preprocess.py"
+
+rule target:
+    ouput: FEATURES, WEIGHTS
+
 
 # This step 2 took about 12 hours on a server with GPU Titan X, 32 GB memory
 
-# Note that you will need to specify the paths to your own data and model folders when you run the Python scripts. The following scripts just show examples of my data and model folders.
+# Note that you will need to specify the paths to your own data and model folders when you run the Python scripts. 
+# The following scripts just show examples of my data and model folders.
 
 # ================================================================================
 # Step 2.1: Prepare the training data.
 # ================================================================================
-import os, glob, sys 
 
-include: "preprocess/denovo_preprocess.py"
-include: "preprocess/denovo_postprocess.py"
-
-import aa_workflow_step_4_2
-import aa_workflow_step_5
-
-
-data_fasta_dir = "data.fasta/"
-patient_id = "Mel16"
-data_training_dir = "data.training/aa.hla.bassani.nature_2016.mel_16.class_1/"
-num_fractions = 11
-model_dir = "train.mel_16.class_1" # before training, create this empty folder at the same level as Python scripts.
-  
 # Run merge_mgf_file() and merge_feature_file()
 # ======================= UNCOMMENT and RUN ======================================
 # ~ folder_path = data_training_dir
@@ -75,15 +76,10 @@ rule feautres_merge_split:
         df_label = df[df['seq'].notnull()]
         df_unlabel.to_csv(output.unlabel, index=False)
         df_label.to_csv(output.label, index=False)
-        
+
+
+
 # Run calculate_mass_shift_ppm() and correct_mass_shift_ppm()
-# ======================= UNCOMMENT and RUN ======================================
-# ~ labeled_feature_file = data_training_dir + "feature.csv.labeled"
-# ~ ppm = calculate_mass_shift_ppm(labeled_feature_file)
-# ~ input_feature_file = data_training_dir + "feature.csv.labeled"
-# ~ correct_mass_shift_ppm(input_feature_file, ppm)
-# ~ input_feature_file = data_training_dir + "feature.csv"
-# ~ correct_mass_shift_ppm(input_feature_file, ppm)
 # ================================================================================
 # The mass shift is calculated from "feature.csv.labeled".
 # The mass shift ppm (part per million) is reported as: "mean_precursor_ppm = 7.07514819678".
@@ -96,6 +92,7 @@ rule correct_mass_shift:
         features="features.csv.mass_corrected",
         label ="features.csv.labeled.mass_corrected" 
     run:
+        # from aa_preprocess 
         ppm = calculate_mass_shift_ppm(input.label)
         correct_mass_shift_ppm(input.label, ppm)
         correct_mass_shift_ppm(input.feautures, ppm)
@@ -118,16 +115,16 @@ rule correct_mass_shift:
 rule split_feature_training_noshare:
     input:   "feature.csv.labeled.mass_corrected"
     output:
-        train =  "features/{sample}.features.csv.train.nodup",
-        valid =  "features/{sample}.features.csv.valid.nodup",
-        test =  "features/{sample}.features.csv.test.nodup",
-        denovo = "features/{sample}.features.csv.denovo.nodup",
+        train =  "feature.csv.labeled.mass_corrected.train.nodup",
+        valid =  "feature.csv.labeled.mass_corrected.valid.nodup",
+        test =  "feature.csv.labeled.mass_corrected.test.nodup",
+        denovo = "feature.csv.labeled.mass_corrected.denovo.nodup",
     params:
         ratio = [0.90, 0.05, 0.05],
         path = smkpath,
         outdir = "features"
     shell:
-        "python {params.path}/preprocess/train_val_test.py {input} {params.outdir}"
+        "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
 
 # ================================================================================
 # Step 2.2: Training DeepNovo model.
@@ -142,7 +139,7 @@ rule train:
         "train/backwad_deepnovo.path",
     params:
         batch_size = 16,
-        epoch = 50,
+        epoch = 20,
         learning_rate = 0.001,
         modelpath = "PoinNovo",
     shell:
@@ -151,20 +148,6 @@ rule train:
         "--train_feature {input.train} "
         "--valid_feature {input.valid} "
 
-# Run DeepNovo training
-# The training will stop after 10 epoch. The model with best performance on the valid set, "ckpt-16200" is saved in the model folder "train.mel_16.class_1".
-# ======================= UNCOMMENT and RUN ======================================
-# ~ command = ["LD_PRELOAD=\"/usr/lib/libtcmalloc.so\" /usr/bin/time -v python deepnovo_main.py --train"]
-# ~ command += ["--train_dir", model_dir]
-# ~ command += ["--train_spectrum", data_training_dir + "spectrum.mgf"]
-# ~ command += ["--train_feature", data_training_dir + "feature.csv.labeled.mass_corrected.train.noshare"]
-# ~ command += ["--valid_spectrum", data_training_dir + "spectrum.mgf"]
-# ~ command += ["--valid_feature", data_training_dir + "feature.csv.labeled.mass_corrected.valid.noshare"]
-# ~ command += ["--reset_step"]
-# ~ command = " ".join(command)
-# ~ print(command)
-# ~ os.system(command)
-# ================================================================================
 rule test:
     input:
         spectrums = "spectrums.mgf",
@@ -209,50 +192,7 @@ rule test:
 # ~ print(command)
 # ~ os.system(command)
 # ================================================================================
+
 # The testing accuracy at the amino acid (AA) and peptide levels will be reported as following:
 #   "precision_AA_mass_db  = 0.8425"
 #   "precision_peptide_mass_db  = 0.6430"
-
-
-# ================================================================================
-# Step 3: Perform personalized de novo sequencing with DeepNovo.
-# ================================================================================
-
-# This step 3 took about 5 hours on a server with GPU Titan X, 32 GB memory
-
-# Run DeepNovo de novo sequencing on all features (label and unlabeled)
-# ======================= UNCOMMENT and RUN ======================================
-# ~ command = ["LD_PRELOAD=\"/usr/lib/libtcmalloc.so\" /usr/bin/time -v python deepnovo_main.py --search_denovo"]
-# ~ command += ["--train_dir", model_dir]
-# ~ command += ["--denovo_spectrum", data_training_dir + "spectrum.mgf"]
-# ~ command += ["--denovo_feature", data_training_dir + "feature.csv.mass_corrected"]
-# ~ command = " ".join(command)
-# ~ print(command)
-# ~ os.system(command)
-# ================================================================================
-# The de novo results will be written to the file "feature.csv.mass_corrected.deepnovo_denovo".
-# The tool will also report the number of features that have been processed:
-#   "Total spectra: 694565"
-#     "read: 690354"
-#     "skipped: 4211"
-#       "by mass: 4211"
-
-
-rule search_denovo:
-    input:
-        spectrums = "spectrums.mgf",
-        denovo = "feature.csv.mass_corrected",
-        fweight = "train/forward_deepnovo.pth",
-        bweight = "train/backwad_deepnovo.path",
-    output:
-        "feature.csv.mass_corrected.deepnovo_denovo",
-    params:
-        batch_size = 16,
-        epoch = 50,
-        learning_rate = 0.001,
-        modelpath = "PoinNovo",
-    shell:
-        shell("python {modelpath}/main.py --search_denovo "
-        "--spectrum {input.spectrums} "
-        "--denovo_feature {input.denovo} ")
-
