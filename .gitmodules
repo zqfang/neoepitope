@@ -1,0 +1,3 @@
+[submodule "MHCquant"]
+	path = MHCquant
+	url = https://github.com/zqfang/neoepitope
