@@ -1,12 +1,26 @@
 import os, glob, sys 
+import joblib 
+import pandas as pd
 
-workdir: "/data/bases/fangzq/ImmunoRep/data"
+WKDIR = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+workdir: WKDIR
 
-SAMPLES = []
-FEATURES = expand("features/{sample}.features.csv.{dat}.nodup", sample=SAMPLES, dat = ['train','test','valid','denovo'])
+MZML = sorted(glob.glob(os.path.join(WKDIR, "peaks/*.mzML.gz")))
+SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
 WEIGHTS = ["train/forward_deepnovo.pth","train/backwad_deepnovo.pth"]
+smkpath = "/home/fangzq/github/neoepitope"
 
 
+PERCOLATOR = ["percolator/{s}.percolator.target.peptides.txt"  for s in SAMPLES ]
+MGF = expand("mgf/{sample}.mgf", sample=SAMPLES)
+FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
+LOCATION = expand("mgf/{sample}.mgf.location.pytorch.pkl", sample=SAMPLES)
+LOCDIC = "spectrums.location.pytorch.pkl"
+TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
+TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
+DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) # , 'denovo'])
+
+FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train','test', 'valid','denovo'])
 
 # ================================================================================
 # Step 2: Train personalized PointNovo model.
@@ -14,8 +28,7 @@ WEIGHTS = ["train/forward_deepnovo.pth","train/backwad_deepnovo.pth"]
 include: "rules/aa_preprocess.py"
 
 rule target:
-    ouput: FEATURES, WEIGHTS
-
+    input: FEATURES, LOCDIC#WEIGHTS
 
 # This step 2 took about 12 hours on a server with GPU Titan X, 32 GB memory
 
@@ -53,14 +66,95 @@ rule target:
 # It also reports the number of labeled and unlabel features: "num_labeled = 207332" and "num_unlabeled = 487233".
 # Note that "207332" is also the number of PSMs reported at FDR 1.0% in Step 1.
 
+rule mzML2mgf:
+    input: 
+        mzml = "peaks/{sample}.mzML.gz",
+        perlco = "percolator/{sample}.percolator.target.peptides.txt",
+    output:
+        mgf = "mgf/{sample}.mgf",
+        features = "mgf/{sample}.features.csv"
+    params:
+        path = smkpath,
+        sample_idx = lambda wildcards: SAMPLES.index(wildcards.sample), 
+    shell:
+        ## better to use hash, not jobid
+        "python {params.path}/rules/mzml2mgf.py "
+        "{input.mzml} {input.perlco} {output.mgf} {output.features} {params.sample_idx} " # {jobid}
+
+
+rule mgf2location:
+    """
+    This step is really slow, and it will be very slow when train or test.
+    """
+    input: 
+        mgf = "mgf/{sample}.mgf",
+    output:
+        loc = "mgf/{sample}.mgf.location.pytorch.pkl"
+    run:
+        spectrum_location_dict = {}
+        line = True
+        with open(input.mgf, 'r') as f:
+            while line:
+                # The tell() method returns the current file position in a file stream.
+                current_location = f.tell() 
+                line = f.readline()
+                if "BEGIN IONS" in line:
+                    spectrum_location = current_location
+                elif "SCANS=" in line:
+                    scan = re.split('[=\r\n]', line)[1]
+                    spectrum_location_dict[scan] = spectrum_location
+
+        joblib.dump(spectrum_location_dict, output.loc)
+
+
+rule train_val_test:
+    input:   "mgf/{sample}.features.csv"
+    output:
+        train =  "features/{sample}.features.csv.train.nodup",
+        valid =  "features/{sample}.features.csv.valid.nodup",
+        test =  "features/{sample}.features.csv.test.nodup",
+        denovo = "features/{sample}.features.csv.denovo.nodup",
+    params:
+        ratio = [0.8, 0.1, 0.1],
+        path = smkpath,
+        outdir = "features"
+    shell:
+        "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
+
+
+
 rule spectrum_merge:
-    input: expand("{samples}.mgf", sample=SAMPLES)
+    input: expand("mgf/{sample}.mgf", sample=TRAIN_SAMPLES)
     output: "spectrums.mgf"
     shell:
         "cat {input} > {output}"
 
+rule spectrum2loc:
+    """
+    This step is really slow, and it will be very slow when train or test.
+    """
+    input: 
+        mgf = "spectrums.mgf",
+    output:
+        loc = "spectrums.location.pytorch.pkl"
+    run:
+        spectrum_location_dict = {}
+        line = True
+        with open(input.mgf, 'r') as f:
+            while line:
+                # The tell() method returns the current file position in a file stream.
+                current_location = f.tell() 
+                line = f.readline()
+                if "BEGIN IONS" in line:
+                    spectrum_location = current_location
+                elif "SCANS=" in line:
+                    scan = re.split('[=\r\n]', line)[1]
+                    spectrum_location_dict[scan] = spectrum_location
+
+        joblib.dump(spectrum_location_dict, output.loc)
+
 rule feautres_merge_split:
-    input: expand("{samples}.features.csv", sample=SAMPLES)
+    input: expand("mgf/{sample}.features.csv", sample=TRAIN_SAMPLES)
     output: 
         features="features.csv",
         label="features.csv.labeled",
@@ -68,7 +162,7 @@ rule feautres_merge_split:
     run:
         df = []
         for p in input:
-            df.append(pd.read_csv(p))
+            df.append(pd.read_csv(p, dtype=str))
         df = pd.concat(df)
         df.to_csv(output.features, index=False)
         # seq = '' => unlablel, else labeled
@@ -76,8 +170,6 @@ rule feautres_merge_split:
         df_label = df[df['seq'].notnull()]
         df_unlabel.to_csv(output.unlabel, index=False)
         df_label.to_csv(output.label, index=False)
-
-
 
 # Run calculate_mass_shift_ppm() and correct_mass_shift_ppm()
 # ================================================================================
@@ -95,7 +187,7 @@ rule correct_mass_shift:
         # from aa_preprocess 
         ppm = calculate_mass_shift_ppm(input.label)
         correct_mass_shift_ppm(input.label, ppm)
-        correct_mass_shift_ppm(input.feautures, ppm)
+        correct_mass_shift_ppm(input.features, ppm)
 
 # Run split_feature_training_noshare()
 # ======================= UNCOMMENT and RUN ======================================
@@ -113,16 +205,16 @@ rule correct_mass_shift:
 #   "num_test = 10609"
 
 rule split_feature_training_noshare:
-    input:   "feature.csv.labeled.mass_corrected"
+    input:   "features.csv.labeled.mass_corrected"
     output:
-        train =  "feature.csv.labeled.mass_corrected.train.nodup",
-        valid =  "feature.csv.labeled.mass_corrected.valid.nodup",
-        test =  "feature.csv.labeled.mass_corrected.test.nodup",
-        denovo = "feature.csv.labeled.mass_corrected.denovo.nodup",
+        train =  "features.csv.labeled.mass_corrected.train.nodup",
+        valid =  "features.csv.labeled.mass_corrected.valid.nodup",
+        test =  "features.csv.labeled.mass_corrected.test.nodup",
+        denovo = "features.csv.labeled.mass_corrected.denovo.nodup",
     params:
         ratio = [0.90, 0.05, 0.05],
         path = smkpath,
-        outdir = "features"
+        outdir = "."
     shell:
         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
 
@@ -134,19 +226,27 @@ rule train:
         spectrums = "spectrums.mgf",
         train = "feature.csv.labeled.mass_corrected.train.nodup",
         valid = "feature.csv.labeled.mass_corrected.valid.nodup",
+        locdict = "spectrums.location.pytorch.pkl",
     output:
         "train/forward_deepnovo.pth",
         "train/backwad_deepnovo.path",
+    resources:
+        partition='gpu',
+        gpus=1,
+        cpus=8,
+        cpu_mem='8g',
+        gpu_mem='GPU_MEM:16GB',
+        time_min='47:58:00', # less than 2 days
     params:
         batch_size = 16,
         epoch = 20,
         learning_rate = 0.001,
-        modelpath = "PoinNovo",
+        modelpath = smkpath,
     shell:
-        "python {modelpath}/main.py --train "
+        "python {modelpath}/PointNovo/train.py "
         "--spectrum {input.spectrums} "
         "--train_feature {input.train} "
-        "--valid_feature {input.valid} "
+        "--valid_feature {input.valid} "        
 
 rule test:
     input:
@@ -160,14 +260,22 @@ rule test:
         batch_size = 16,
         epoch = 50,
         learning_rate = 0.001,
-        modelpath = "PoinNovo",
-    shell:
-        shell("python {modelpath}/main.py --search_denovo "
-        "--spectrum {input.spectrums} "
-        "--test_feature {input.test} ")
+        modelpath = smkpath,
+    resources:
+        partition='gpu',
+        gpus=1,
+        cpus=8,
+        cpu_mem='8g',
+        gpu_mem='GPU_MEM:16GB',
+        time_min='47:58:00', # less than 2 days
+    run:
+        shell("python {modelpath}/PoinNovo/main.py --search_denovo "
+              "--spectrum {input.spectrums} "
+              "--test_feature {input.test} ")
+
         shell("python {modelpath}/main.py --test "
-        "--spectrum {input.spectrums} "
-        "--test_feature {input.test} ")
+              "--spectrum {input.spectrums} "
+              "--test_feature {input.test} ")
         
 # Run DeepNovo testing
 # ======================= UNCOMMENT and RUN ======================================

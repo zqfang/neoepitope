@@ -15,7 +15,7 @@ np.random.seed(0)
 from Bio import SeqIO
 from Bio.SeqIO import FastaIO
 
-import deepnovo_config
+import aa_config
 
 
 
@@ -176,9 +176,9 @@ def compute_peptide_mass(peptide):
 	"""TODO(nh2tran): docstring.
 	"""
 
-	peptide_mass = (deepnovo_config.mass_N_terminus
-									+ sum(deepnovo_config.mass_AA[aa] for aa in peptide)
-									+ deepnovo_config.mass_C_terminus)
+	peptide_mass = (aa_config.mass_N_terminus
+									+ sum(aa_config.mass_AA[aa] for aa in peptide)
+									+ aa_config.mass_C_terminus)
 
 	return peptide_mass
 
@@ -246,7 +246,7 @@ def calculate_mass_shift_ppm(input_feature_file):
 		precursor_mz = float(row['m/z'])
 		precursor_charge = float(row['z'])
 		peptide_mass = compute_peptide_mass(peptide)
-		peptide_mz = (peptide_mass + precursor_charge * deepnovo_config.mass_H) / precursor_charge
+		peptide_mz = (peptide_mass + precursor_charge * aa_config.mass_H) / precursor_charge
 		precursor_ppm = (precursor_mz - peptide_mz) / peptide_mz * 1e6
 		precursor_ppm_list.append(precursor_ppm)
 	mean_precursor_ppm = np.mean(precursor_ppm_list)

@@ -67,17 +67,17 @@ rule mgf2location:
 
 
 
-rule correct_mass_shift:
-    input:
-        features="features.csv",
-        label="features.csv.labeled",
-    output:
-        features="features.csv.mass_corrected",
-        label ="features.csv.labeled.mass_corrected" 
-    run:
-        ppm = calculate_mass_shift_ppm(input.label)
-        correct_mass_shift_ppm(input.label, ppm)
-        correct_mass_shift_ppm(input.feautures, ppm)
+# rule correct_mass_shift:
+#     input:
+#         features="features.csv",
+#         label="features.csv.labeled",
+#     output:
+#         features="features.csv.mass_corrected",
+#         label ="features.csv.labeled.mass_corrected" 
+#     run:
+#         ppm = calculate_mass_shift_ppm(input.label)
+#         correct_mass_shift_ppm(input.label, ppm)
+#         correct_mass_shift_ppm(input.feautures, ppm)
 
 
 rule train_val_test:

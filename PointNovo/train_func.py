@@ -189,24 +189,24 @@ def save_model(forward_deepnovo, backward_deepnovo, init_net):
 
 
 
-def train():
-    # train_set = DeepNovoTrainDataset(config.input_feature_file_train,
-    #                                  config.input_spectrum_file_train)
-    # num_train_features = len(train_set)
-    # steps_per_epoch = int(num_train_features / config.batch_size)
-    # logger.info(f"{steps_per_epoch} steps per epoch")
-    # train_data_loader = torch.utils.data.DataLoader(dataset=train_set,
-    #                                                 batch_size=config.batch_size,
-    #                                                 shuffle=True,
-    #                                                 num_workers=config.num_workers,
-    #                                                 collate_fn=collate_func)
-    # valid_set = DeepNovoTrainDataset(config.input_feature_file_valid,
-    #                                  config.input_spectrum_file_valid)
-    # valid_data_loader = torch.utils.data.DataLoader(dataset=valid_set,
-    #                                                 batch_size=config.batch_size,
-    #                                                 shuffle=False,
-    #                                                 num_workers=config.num_workers,
-    #                                                 collate_fn=collate_func)
+def train(train_feature: str, valid_feature: str, spectrum: str, spectrum_loc: str):
+
+    train_set = DeepNovoTrainDataset(train_feature, spectrum, spectrum_loc)
+    num_train_features = len(train_set)
+    steps_per_epoch = int(num_train_features / config.batch_size)
+    logger.info(f"{steps_per_epoch} steps per epoch")
+    train_data_loader = torch.utils.data.DataLoader(dataset=train_set,
+                                                    batch_size=config.batch_size,
+                                                    shuffle=True,
+                                                    num_workers=config.num_workers,
+                                                    collate_fn=collate_func)
+
+    valid_set = DeepNovoTrainDataset(valid_feature, spectrum, spectrum_loc)
+    valid_data_loader = torch.utils.data.DataLoader(dataset=valid_set,
+                                                    batch_size=config.batch_size,
+                                                    shuffle=False,
+                                                    num_workers=config.num_workers,
+                                                    collate_fn=collate_func)
 
 
     forward_deepnovo, backward_deepnovo, init_net = build_model()
@@ -231,8 +231,108 @@ def train():
     start_time = time.time()
     logger.info(f"Training start time: {start_time}")
     for epoch in range(config.num_epoch):
+        # adjust_learning_rate(optimizer, epoch)
+        for i, data in enumerate(train_data_loader):
+            mini_batch += 1
+            dense_optimizer.zero_grad()
+            # sparse_optimizer.zero_grad()
+
+            peak_location, peak_intensity, \
+            spectrum_representation, \
+            batch_forward_id_target, \
+            batch_backward_id_target, \
+            batch_forward_ion_index, \
+            batch_backward_ion_index, \
+            batch_forward_id_input, \
+            batch_backward_id_input = extract_and_move_data(data)
+            batch_size = batch_backward_id_target.size(0)
+
+            if config.use_lstm:
+                initial_state_tuple = init_net(spectrum_representation)
+                forward_logit, _ = forward_deepnovo(batch_forward_ion_index, peak_location, peak_intensity,
+                                                    batch_forward_id_input, initial_state_tuple)
+                backward_logit, _ = backward_deepnovo(batch_backward_ion_index, peak_location, peak_intensity,
+                                                    batch_backward_id_input, initial_state_tuple)
+            else:
+                forward_logit = forward_deepnovo(batch_forward_ion_index, peak_location, peak_intensity)
+                backward_logit = backward_deepnovo(batch_backward_ion_index, peak_location, peak_intensity)
+
+            forward_loss, _ = focal_loss(forward_logit, batch_forward_id_target, ignore_index=0, gamma=2.)
+            backward_loss, _ = focal_loss(backward_logit, batch_backward_id_target, ignore_index=0, gamma=2.)
+            total_loss = (forward_loss + backward_loss) / 2.
+            # compute gradient
+            total_loss.backward()
+            # clip gradient
+            # torch.nn.utils.clip_grad_norm_(dense_params, deepnovo_config.max_gradient_norm)
+
+            dense_optimizer.step()
+            # sparse_optimizer.step()
+
+            if (mini_batch + 1) % config.steps_per_validation == 0:
+                duration = time.time() - start_time
+                step_time = duration / config.steps_per_validation
+                loss_cpu = total_loss.item()
+                # evaluation mode
+                forward_deepnovo.eval()
+                backward_deepnovo.eval()
+                validation_loss = validation(forward_deepnovo, backward_deepnovo, init_net, valid_data_loader)
+                dense_scheduler.step(validation_loss)
+                # sparse_scheduler.step(validation_loss)
+
+                logger.info(f"epoch {epoch} step {m}/{steps_per_epoch}, "
+                            f"train perplexity: {perplexity(loss_cpu)}\t"
+                            f"validation perplexity: {perplexity(validation_loss)}\tstep time: {step_time}")
+
+                if validation_loss < best_valid_loss:
+                    best_valid_loss = validation_loss
+                    logger.info(f"best valid loss achieved at epoch {epoch} step {i}")
+                    best_epoch = epoch
+                    best_step = i
+                    # save model if achieve a new best valid loss
+                    save_model(forward_deepnovo, backward_deepnovo, init_net)
+
+                # back to train model
+                forward_deepnovo.train()
+                backward_deepnovo.train()
+
+                start_time = time.time()
+            # observed that most of gpu memory is unoccupied cache, so clear cache after each batch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+    
+    logger.info(f"best model at epoch {best_epoch} step {best_step}")
+
+    end_time = time.time()
+    logger.info(f"training end time: {end_time}")
+
+
+
+def train_per_sample():
+
+    forward_deepnovo, backward_deepnovo, init_net = build_model()
+    # sparse_params = forward_deepnovo.spectrum_embedding_matrix.parameters()
+
+    ## in DeepNovoV2, there is no need to train parameters in init_net
+    dense_params = list(forward_deepnovo.parameters()) + list(backward_deepnovo.parameters())
+
+    dense_optimizer = optim.Adam(dense_params,
+                                 lr=config.init_lr,
+                                 weight_decay=config.weight_decay)
+    # sparse_optimizer = optim.SparseAdam(sparse_params, lr=deepnovo_config.init_lr)
+    dense_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(dense_optimizer, 'min', factor=0.5, verbose=True,
+                                                                 threshold=1e-4, cooldown=10, min_lr=1e-5)
+    # sparse_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(sparse_optimizer, 'min', factor=0.25, verbose=False,
+    #                                                        threshold=1e-4, cooldown=10, min_lr=1e-5)
+
+    best_valid_loss = float("inf")
+    # train loop
+    best_epoch = None
+    best_step = None
+    start_time = time.time()
+    logger.info(f"Training start time: {start_time}")
+    for epoch in range(config.num_epoch):
         # so, each sample will be train
-        m = 0
+        mini_batch = 0
         for j, spectrums in enumerate(config.data_spectrums):
             train_set = DeepNovoTrainDataset(config.input_feature_file_train[j],
                                             config.input_spectrum_file_train[j])
@@ -258,7 +358,7 @@ def train():
             # learning rate schedule
             # adjust_learning_rate(optimizer, epoch)
             for i, data in enumerate(train_data_loader):
-                m += 1
+                mini_batch += 1
                 dense_optimizer.zero_grad()
                 # sparse_optimizer.zero_grad()
 
@@ -293,7 +393,7 @@ def train():
                 dense_optimizer.step()
                 # sparse_optimizer.step()
 
-                if (m + 1) % config.steps_per_validation == 0:
+                if (mini_batch + 1) % config.steps_per_validation == 0:
                     duration = time.time() - start_time
                     step_time = duration / config.steps_per_validation
                     loss_cpu = total_loss.item()
@@ -329,3 +429,4 @@ def train():
 
     end_time = time.time()
     logger.info(f"training end time: {end_time}")
+

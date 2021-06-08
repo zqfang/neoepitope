@@ -1,0 +1,7 @@
+jobs: 666 # maximum job number
+use-conda: true
+cluster: "sbatch -p {resources.partition} --time={resources.time_min} -c {resources.cpus} --mem={resources.cpu_mem} --gpus={resources.gpus} -C {resources.gpu_mem} "
+default-resources: ["cpus=1", "cpu_mem='4g'", "time_min='24:00:00'","partition='normal'","gpus=0", "gpu_mem='GPU_MEM:16GB'"]
+# resources: [cpus=30, mem_mb=500000] # maximum resource for snakemake
+## note:
+## cluster: "sbatch -p {params.partition} --time={params.time_min}" # also works

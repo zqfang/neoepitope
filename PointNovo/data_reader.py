@@ -113,7 +113,7 @@ class TrainData:
 
 
 class BaseDataset(Dataset):
-    def __init__(self, feature_filename, spectrum_filename, transform=None):
+    def __init__(self, feature_filename, spectrum_filename, spectrum_location_dict = None, transform=None):
         """
         An abstract class, read all feature information and store in memory,
         :param feature_filename:
@@ -127,7 +127,11 @@ class BaseDataset(Dataset):
         self.spectrum_location_dict = {}
         self.transform = transform
         # read spectrum location file
-        spectrum_location_file = spectrum_filename + '.location.pytorch.pkl'
+        if spectrum_location_dict is None:
+            spectrum_location_file = spectrum_filename + '.location.pytorch.pkl'
+        else:
+            spectrum_location_file = spectrum_location_dict
+            
         if os.path.exists(spectrum_location_file):
             logger.info(f"read cached spectrum locations")
             with open(spectrum_location_file, 'rb') as fr:

@@ -88,7 +88,8 @@
 #####################################################################################################################
 #
 # workflow using comet + percolator for neoantigen discovery
-#
+# 
+# Refer to MHCquant to get more features and results
 #####################################################################################################################
 ## use openMS
 ## comet + percolator
