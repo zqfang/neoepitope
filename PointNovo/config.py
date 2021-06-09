@@ -19,8 +19,17 @@ parser.add_argument("--beam_size", type=int, default="5")
 parser.add_argument("--train", dest="train", action="store_true")
 parser.add_argument("--search_denovo", dest="search_denovo", action="store_true")
 parser.add_argument("--search_db", dest="search_db", action="store_true")
-parser.add_argument("--valid", dest="valid", action="store_true")
+# parser.add_argument("--valid", dest="valid", action="store_true")
 parser.add_argument("--test", dest="test", action="store_true")
+
+parser.add_argument("--spectrum", required=True, help="mgf file")
+parser.add_argument("--location_dict", required=True, help="feature's spectrum location of the mf file.")
+parser.add_argument("--train_feature", required=False, help="features with mass corrected csv file.")
+parser.add_argument("--valid_feature", required=False, help="features with mass corrected csv file.")
+parser.add_argument("--test_feature", required=False, help="features with mass corrected csv file.")
+parser.add_argument("--denovo_feature", required=False, help="features with mass corrected csv file.")
+parser.add_argument("--knapsack", required=False, default="knapsack.npy", help="use the knapsack algorithm to limit the search space." )
+
 
 parser.set_defaults(train=False)
 parser.set_defaults(search_denovo=False)
@@ -29,6 +38,23 @@ parser.set_defaults(valid=False)
 parser.set_defaults(test=False)
 
 args = parser.parse_args()
+
+
+if args.train:
+    assert args.train_feature is not None
+    assert args.valid_feature is not None
+    assert args.spectrum is not None
+    assert args.location_dict is not None
+
+if args.test:
+    assert args.test_feature is not None
+    assert args.spectrum is not None
+    assert args.location_dict is not None
+
+if args.search_denovo:
+    assert args.denovo_feature is not None
+    assert args.spectrum is not None
+    assert args.location_dict is not None
 
 FLAGS = args
 train_dir = FLAGS.train_dir
@@ -287,31 +313,49 @@ data_dir = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 data_spectrums = sorted(glob.glob(os.path.join(data_dir, "mgf/train_*mgf")))
 data_samples = [os.path.basename(spec).replace(".mgf", "") for spec in data_spectrums]
 
+knapsack_file = args.knapsack
+data_spectrums = args.spectrum
+input_feature_file_train = args.train_feature
+input_feature_file_valid = args.valid_feature
+data_sepctrums_loc = args.location_dict
+
 input_spectrum_file_train = data_spectrums
-input_feature_file_train = [f"{data_dir}/features/{sample}.features.csv.train.nodup" for sample in data_samples]
+# input_feature_file_train = [f"{data_dir}/features/{sample}.features.csv.train.nodup" for sample in data_samples]
 input_spectrum_file_valid = data_spectrums
-input_feature_file_valid = [f"{data_dir}/features/{sample}.features.csv.valid.nodup" for sample in data_samples]
+# input_feature_file_valid = [f"{data_dir}/features/{sample}.features.csv.valid.nodup" for sample in data_samples]
 input_spectrum_file_test = data_spectrums
-input_feature_file_test = [f"{data_dir}/features/{sample}.features.csv.test.nodup" for sample in data_samples]
+# input_feature_file_test = [f"{data_dir}/features/{sample}.features.csv.test.nodup" for sample in data_samples]
+
+
 # denovo files
 denovo_input_spectrum_file = data_spectrums
-denovo_input_feature_file = [f"{data_dir}/features/{sample}.features.csv.denovo.nodup" for sample in data_samples]
-denovo_output_file = [denovo + ".deepnovo_denovo" for denovo in denovo_input_feature_file ] 
+denovo_input_feature_file = args.denovo_feature ## use features.mass_corrected.csv
+
+#denovo_input_feature_file = [f"{data_dir}/features/{sample}.features.csv.denovo.nodup" for sample in data_samples]
+if args.denovo_feature is not None:
+    denovo_output_file = denovo_input_feature_file + ".deepnovo_denovo"  
+    predicted_file = denovo_output_file
+    # test accuracy
+    predicted_format = "deepnovo"
+    target_file = denovo_input_feature_file
+    predicted_file = denovo_output_file
+
+    accuracy_file = [ pred + ".accuracy" for pred in predicted_file ]
+    denovo_only_file = [ pred + ".denovo_only" for pred in predicted_file ]
+    scan2fea_file =  [ pred + ".scan2fea" for pred in predicted_file ]
+    multifea_file =  [ pred + ".multifea" for pred in predicted_file ]
+
+
+
 
 # db search files
 search_db_input_spectrum_file = "Lumos_data/PXD008999/export_0.mgf"
 search_db_input_feature_file = "Lumos_data/PXD008999/export_0.csv"
 db_output_file = search_db_input_feature_file + '.pin'
 
-# test accuracy
-predicted_format = "deepnovo"
-target_file = denovo_input_feature_file
-predicted_file = denovo_output_file
 
-accuracy_file = [ pred + ".accuracy" for pred in predicted_file ]
-denovo_only_file = [ pred + ".denovo_only" for pred in predicted_file ]
-scan2fea_file =  [ pred + ".scan2fea" for pred in predicted_file ]
-multifea_file =  [ pred + ".multifea" for pred in predicted_file ]
+
+
 # ==============================================================================
 # feature file column format
 col_feature_id = "spec_group_id"

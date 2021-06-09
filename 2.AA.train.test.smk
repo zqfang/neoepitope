@@ -7,7 +7,8 @@ workdir: WKDIR
 
 MZML = sorted(glob.glob(os.path.join(WKDIR, "peaks/*.mzML.gz")))
 SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
-WEIGHTS = ["train/forward_deepnovo.pth","train/backwad_deepnovo.pth"]
+WEIGHTS = ["train/forward_deepnovo.pth", "train/backward_deepnovo.pth"]
+
 smkpath = "/home/fangzq/github/neoepitope"
 
 
@@ -15,7 +16,7 @@ PERCOLATOR = ["percolator/{s}.percolator.target.peptides.txt"  for s in SAMPLES 
 MGF = expand("mgf/{sample}.mgf", sample=SAMPLES)
 FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
 LOCATION = expand("mgf/{sample}.mgf.location.pytorch.pkl", sample=SAMPLES)
-LOCDIC = "spectrums.location.pytorch.pkl"
+LOCDICT = "spectrums.location.pytorch.pkl"
 TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
 TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
 DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) # , 'denovo'])
@@ -28,7 +29,7 @@ FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train
 include: "rules/aa_preprocess.py"
 
 rule target:
-    input: FEATURES, LOCDIC#WEIGHTS
+    input: FEATURES, LOCDICT, WEIGHTS
 
 # This step 2 took about 12 hours on a server with GPU Titan X, 32 GB memory
 
@@ -224,12 +225,12 @@ rule split_feature_training_noshare:
 rule train:
     input:
         spectrums = "spectrums.mgf",
-        train = "feature.csv.labeled.mass_corrected.train.nodup",
-        valid = "feature.csv.labeled.mass_corrected.valid.nodup",
+        train = "features.csv.labeled.mass_corrected.train.nodup",
+        valid = "features.csv.labeled.mass_corrected.valid.nodup",
         locdict = "spectrums.location.pytorch.pkl",
     output:
         "train/forward_deepnovo.pth",
-        "train/backwad_deepnovo.path",
+        "train/backward_deepnovo.pth",
     resources:
         partition='gpu',
         gpus=1,
@@ -241,10 +242,10 @@ rule train:
         batch_size = 16,
         epoch = 20,
         learning_rate = 0.001,
-        modelpath = smkpath,
+        model = smkpath,
     shell:
-        "python {modelpath}/PointNovo/train.py "
-        "--spectrum {input.spectrums} "
+        "python {params.model}/PointNovo/main.py --train "
+        "--spectrum {input.spectrums} --location_dict {input.locdict} "
         "--train_feature {input.train} "
         "--valid_feature {input.valid} "        
 

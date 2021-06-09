@@ -189,9 +189,9 @@ def save_model(forward_deepnovo, backward_deepnovo, init_net):
 
 
 
-def train(train_feature: str, valid_feature: str, spectrum: str, spectrum_loc: str):
+def train():
 
-    train_set = DeepNovoTrainDataset(train_feature, spectrum, spectrum_loc)
+    train_set = DeepNovoTrainDataset(config.input_feature_file_train, config.data_spectrums, config.data_sepctrums_loc)
     num_train_features = len(train_set)
     steps_per_epoch = int(num_train_features / config.batch_size)
     logger.info(f"{steps_per_epoch} steps per epoch")
@@ -201,7 +201,7 @@ def train(train_feature: str, valid_feature: str, spectrum: str, spectrum_loc: s
                                                     num_workers=config.num_workers,
                                                     collate_fn=collate_func)
 
-    valid_set = DeepNovoTrainDataset(valid_feature, spectrum, spectrum_loc)
+    valid_set = DeepNovoTrainDataset(config.input_feature_file_valid, config.data_spectrums, config.data_sepctrums_loc)
     valid_data_loader = torch.utils.data.DataLoader(dataset=valid_set,
                                                     batch_size=config.batch_size,
                                                     shuffle=False,
@@ -233,7 +233,6 @@ def train(train_feature: str, valid_feature: str, spectrum: str, spectrum_loc: s
     for epoch in range(config.num_epoch):
         # adjust_learning_rate(optimizer, epoch)
         for i, data in enumerate(train_data_loader):
-            mini_batch += 1
             dense_optimizer.zero_grad()
             # sparse_optimizer.zero_grad()
 
@@ -268,7 +267,7 @@ def train(train_feature: str, valid_feature: str, spectrum: str, spectrum_loc: s
             dense_optimizer.step()
             # sparse_optimizer.step()
 
-            if (mini_batch + 1) % config.steps_per_validation == 0:
+            if (i + 1) % config.steps_per_validation == 0:
                 duration = time.time() - start_time
                 step_time = duration / config.steps_per_validation
                 loss_cpu = total_loss.item()

@@ -3,7 +3,6 @@ import logging
 import logging.config
 from train_func import train
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -13,12 +12,11 @@ def main():
     parser.add_argument("--train_feature", required=True, help="features with mass corrected csv file.")
     parser.add_argument("--valid_feature", required=True, help="features with mass corrected csv file.")
     parser.add_argument("--location_dict", required=True, help="feature's specum locaion of the mf file." )
+    parser.add_argument("--knapsack", required=False, default="knapsack.npy", help="use the knapsack algorithm to limit the search space." )
 
     args = parser.parse_args()
     ## start training
-    train(args.train_feature, args.valid_feature, args.spectrum, args.location_dict)
-
-
+    train(args)
 
 if __name__ == '__main__':
     log_file_name = 'PointNovo.train.log'
