@@ -2,30 +2,34 @@ import os, glob, sys
 import joblib 
 import pandas as pd
 
+# scripts path
+smkpath = "/home/fangzq/github/neoepitope"
+# working directory
 WKDIR = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
-workdir: WKDIR
 
+##### INPUTS #####################
 MZML = sorted(glob.glob(os.path.join(WKDIR, "peaks/*.mzML.gz")))
 SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
-WEIGHTS = ["train/forward_deepnovo.pth", "train/backward_deepnovo.pth"]
-
-smkpath = "/home/fangzq/github/neoepitope"
-
-
 PERCOLATOR = ["percolator/{s}.percolator.target.peptides.txt"  for s in SAMPLES ]
+
+TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
+TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
+
+#### OUTPUTS #####################
+# output files write to the working directory 
 MGF = expand("mgf/{sample}.mgf", sample=SAMPLES)
 FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
 LOCATION = expand("mgf/{sample}.mgf.location.pytorch.pkl", sample=SAMPLES)
 LOCDICT = "spectrums.location.pytorch.pkl"
-TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
-TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
-DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) # , 'denovo'])
 
+WEIGHTS = ["train/forward_deepnovo.pth", "train/backward_deepnovo.pth"]
+DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) 
 FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train','test', 'valid','denovo'])
 
 # ================================================================================
 # Step 2: Train personalized PointNovo model.
 # ================================================================================
+workdir: WKDIR
 include: "rules/aa_preprocess.py"
 
 rule target:
@@ -219,89 +223,3 @@ rule split_feature_training_noshare:
     shell:
         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
 
-# ================================================================================
-# Step 2.2: Training DeepNovo model.
-# ================================================================================
-rule train:
-    input:
-        spectrums = "spectrums.mgf",
-        train = "features.csv.labeled.mass_corrected.train.nodup",
-        valid = "features.csv.labeled.mass_corrected.valid.nodup",
-        locdict = "spectrums.location.pytorch.pkl",
-    output:
-        "train/forward_deepnovo.pth",
-        "train/backward_deepnovo.pth",
-    resources:
-        partition='gpu',
-        gpus=1,
-        cpus=8,
-        cpu_mem='8g',
-        gpu_mem='GPU_MEM:16GB',
-        time_min='47:58:00', # less than 2 days
-    params:
-        batch_size = 16,
-        epoch = 20,
-        learning_rate = 0.001,
-        model = smkpath,
-    shell:
-        "python {params.model}/PointNovo/main.py --train "
-        "--spectrum {input.spectrums} --location_dict {input.locdict} "
-        "--train_feature {input.train} "
-        "--valid_feature {input.valid} "        
-
-rule test:
-    input:
-        spectrums = "spectrums.mgf",
-        test = "feature.csv.labeled.mass_corrected.test.nodup",
-        fweight = "train/forward_deepnovo.pth",
-        bweight = "train/backwad_deepnovo.path",
-    output:
-        "feature.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo"
-    params:
-        batch_size = 16,
-        epoch = 50,
-        learning_rate = 0.001,
-        modelpath = smkpath,
-    resources:
-        partition='gpu',
-        gpus=1,
-        cpus=8,
-        cpu_mem='8g',
-        gpu_mem='GPU_MEM:16GB',
-        time_min='47:58:00', # less than 2 days
-    run:
-        shell("python {modelpath}/PoinNovo/main.py --search_denovo "
-              "--spectrum {input.spectrums} "
-              "--test_feature {input.test} ")
-
-        shell("python {modelpath}/main.py --test "
-              "--spectrum {input.spectrums} "
-              "--test_feature {input.test} ")
-        
-# Run DeepNovo testing
-# ======================= UNCOMMENT and RUN ======================================
-# ~ command = ["LD_PRELOAD=\"/usr/lib/libtcmalloc.so\" /usr/bin/time -v python deepnovo_main.py --test_true_feeding"]
-# ~ command += ["--train_dir", model_dir]
-# ~ command += ["--test_spectrum", data_training_dir + "spectrum.mgf"]
-# ~ command += ["--test_feature", data_training_dir + "feature.csv.labeled.mass_corrected.test.noshare"]
-# ~ command = " ".join(command)
-# ~ print(command)
-# ~ os.system(command)
-# ~ command = ["LD_PRELOAD=\"/usr/lib/libtcmalloc.so\" /usr/bin/time -v python deepnovo_main.py --search_denovo"]
-# ~ command += ["--train_dir", model_dir]
-# ~ command += ["--denovo_spectrum", data_training_dir + "spectrum.mgf"]
-# ~ command += ["--denovo_feature", data_training_dir + "feature.csv.labeled.mass_corrected.test.noshare"]
-# ~ command = " ".join(command)
-# ~ print(command)
-# ~ os.system(command)
-# ~ command = ["LD_PRELOAD=\"/usr/lib/libtcmalloc.so\" /usr/bin/time -v python deepnovo_main.py --test"]
-# ~ command += ["--target_file", data_training_dir + "feature.csv.labeled.mass_corrected.test.noshare"]
-# ~ command += ["--predicted_file", data_training_dir + "feature.csv.labeled.mass_corrected.test.noshare.deepnovo_denovo"]
-# ~ command = " ".join(command)
-# ~ print(command)
-# ~ os.system(command)
-# ================================================================================
-
-# The testing accuracy at the amino acid (AA) and peptide levels will be reported as following:
-#   "precision_AA_mass_db  = 0.8425"
-#   "precision_peptide_mass_db  = 0.6430"
