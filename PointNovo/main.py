@@ -25,7 +25,8 @@ def main():
     elif config.FLAGS.search_denovo:
         logger.info("denovo mode")
         data_reader = DeepNovoDenovoDataset(feature_filename=config.denovo_input_feature_file,
-                                            spectrum_filename=config.denovo_input_spectrum_file)
+                                            spectrum_filename=config.denovo_input_spectrum_file,
+                                            spectrum_location_dict=config.data_sepctrums_loc)
         denovo_data_loader = torch.utils.data.DataLoader(dataset=data_reader, batch_size=config.batch_size,
                                                          shuffle=False,
                                                          num_workers=config.num_workers,
@@ -43,7 +44,8 @@ def main():
         logger.info(f"de novo {len(data_reader)} spectra takes {time.time() - start_time} seconds")
     elif config.FLAGS.valid:
         valid_set = DeepNovoTrainDataset(config.input_feature_file_valid,
-                                         config.input_spectrum_file_valid)
+                                         config.input_spectrum_file_valid,
+                                         config.data_sepctrums_loc)
         valid_data_loader = torch.utils.data.DataLoader(dataset=valid_set,
                                                         batch_size=config.batch_size,
                                                         shuffle=False,

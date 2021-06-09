@@ -25,6 +25,7 @@ Deep learning models (Pytorch) for cancer immunology
    - python >= 3.7
    - pytorch >= 1.0
    - scikit-learn
+   - python-Levenshtein
    - biopython
    - pyteomics
    - pyopenms

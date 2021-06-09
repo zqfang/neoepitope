@@ -27,7 +27,7 @@ DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAM
 FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train','test', 'valid','denovo'])
 
 # ================================================================================
-# Step 2: Train personalized PointNovo model.
+# Step 2: Preprocess
 # ================================================================================
 workdir: WKDIR
 include: "rules/aa_preprocess.py"
@@ -35,42 +35,12 @@ include: "rules/aa_preprocess.py"
 rule target:
     input: FEATURES, LOCDICT, WEIGHTS
 
-# This step 2 took about 12 hours on a server with GPU Titan X, 32 GB memory
-
-# Note that you will need to specify the paths to your own data and model folders when you run the Python scripts. 
-# The following scripts just show examples of my data and model folders.
-
 # ================================================================================
 # Step 2.1: Prepare the training data.
 # ================================================================================
 
 # Run merge_mgf_file() and merge_feature_file()
-# ======================= UNCOMMENT and RUN ======================================
-# ~ folder_path = data_training_dir
-# ~ fraction_list = range(0, num_fractions)
-# ~ merge_mgf_file(
-    # ~ input_file_list=[folder_path + "export_" + str(i) + ".mgf" for i in fraction_list],
-    # ~ fraction_list=fraction_list,
-    # ~ output_file=folder_path + "spectrum.mgf")
-# ~ merge_feature_file(
-    # ~ input_file_list=[folder_path + "export_" + str(i) + ".csv" for i in fraction_list],
-    # ~ fraction_list=fraction_list,
-    # ~ output_file=folder_path + "feature.csv")
-# ================================================================================
 # We will get two output files in the same folder: "spectrum.mgf" and "feature.csv".
-# Both functions also report the number of entries that have been processed: "counter = 694565".
-# That number should be the same as the total number of MS/MS spectra from the raw files.
-
-
-# Run split_feature_unlabel()
-# ======================= UNCOMMENT and RUN ======================================
-# ~ input_feature_file = data_training_dir + "feature.csv"
-# ~ split_feature_unlabel(input_feature_file)
-# ================================================================================
-# It will split the "feature.csv" into 2 files: "feature.csv.labeled" and "feature.csv.unlabeled".
-# It also reports the number of labeled and unlabel features: "num_labeled = 207332" and "num_unlabeled = 487233".
-# Note that "207332" is also the number of PSMs reported at FDR 1.0% in Step 1.
-
 rule mzML2mgf:
     input: 
         mzml = "peaks/{sample}.mzML.gz",
@@ -127,7 +97,6 @@ rule train_val_test:
         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
 
 
-
 rule spectrum_merge:
     input: expand("mgf/{sample}.mgf", sample=TRAIN_SAMPLES)
     output: "spectrums.mgf"
@@ -158,6 +127,8 @@ rule spectrum2loc:
 
         joblib.dump(spectrum_location_dict, output.loc)
 
+
+# It will split the "feature.csv" into 2 files: "feature.csv.labeled" and "feature.csv.unlabeled".
 rule feautres_merge_split:
     input: expand("mgf/{sample}.features.csv", sample=TRAIN_SAMPLES)
     output: 
@@ -195,20 +166,9 @@ rule correct_mass_shift:
         correct_mass_shift_ppm(input.features, ppm)
 
 # Run split_feature_training_noshare()
-# ======================= UNCOMMENT and RUN ======================================
-# ~ input_feature_file = data_training_dir + "feature.csv.labeled.mass_corrected"
-# ~ proportion = [0.90, 0.05, 0.05]
-# ~ split_feature_training_noshare(input_feature_file, proportion)
 # ================================================================================
 # It will split "feature.csv.labeled.mass_corrected" into train/valid/test sets with "proportion = [0.9, 0.05, 0.05]".
 # Those 3 sets do not share common peptides.
-# Their sizes are also reported.
-#   "num_total = 207332"
-#   "num_unique = 26656"
-#   "num_train = 185823"
-#   "num_valid = 10900"
-#   "num_test = 10609"
-
 rule split_feature_training_noshare:
     input:   "features.csv.labeled.mass_corrected"
     output:

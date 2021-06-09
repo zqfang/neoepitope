@@ -14,7 +14,7 @@ from itertools import combinations
 # ==============================================================================
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--train_dir", type=str, default="train")
+parser.add_argument("--train_dir", type=str, default="checkpoints")
 parser.add_argument("--beam_size", type=int, default="5")
 parser.add_argument("--train", dest="train", action="store_true")
 parser.add_argument("--search_denovo", dest="search_denovo", action="store_true")
@@ -340,10 +340,10 @@ if args.denovo_feature is not None:
     target_file = denovo_input_feature_file
     predicted_file = denovo_output_file
 
-    accuracy_file = [ pred + ".accuracy" for pred in predicted_file ]
-    denovo_only_file = [ pred + ".denovo_only" for pred in predicted_file ]
-    scan2fea_file =  [ pred + ".scan2fea" for pred in predicted_file ]
-    multifea_file =  [ pred + ".multifea" for pred in predicted_file ]
+    accuracy_file =  predicted_file + ".accuracy"
+    denovo_only_file = predicted_file + ".denovo_only" 
+    scan2fea_file =  predicted_file +  ".scan2fea" 
+    multifea_file =  predicted_file +  ".multifea" 
 
 
 

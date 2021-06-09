@@ -15,7 +15,7 @@ import Levenshtein
 import csv
 import numpy as np
 import math
-import deepnovo_config
+import aa_config
 
 
 def compute_peptide_mass(peptide):
@@ -25,9 +25,9 @@ def compute_peptide_mass(peptide):
 	#~ print("".join(["="] * 80)) # section-separating line ===
 	#~ print("WorkerDB: _compute_peptide_mass()")
 
-	peptide_mass = (deepnovo_config.mass_N_terminus
-									+ sum(deepnovo_config.mass_AA[aa] for aa in peptide)
-									+ deepnovo_config.mass_C_terminus)
+	peptide_mass = (aa_config.mass_N_terminus
+									+ sum(aa_config.mass_AA[aa] for aa in peptide)
+									+ aa_config.mass_C_terminus)
 
 	return peptide_mass
 
@@ -152,7 +152,7 @@ def compute_distance(predicted_sequence, consensus_sequence):
 	modification_list = ['C(Carbamidomethylation)', 'M(Oxidation)', 'N(Deamidation)', 'Q(Deamidation)']
 	simplified_list = ['c', 'm', 'n', 'q']
 	for x in simplified_list:
-		assert x not in deepnovo_config.vocab_reverse
+		assert x not in aa_config.vocab_reverse
 	for x, y in zip(modification_list, simplified_list):
 		predicted_sequence = [aa.replace(x, y) for aa in predicted_sequence]
 		consensus_sequence = [aa.replace(x, y) for aa in consensus_sequence]
@@ -206,7 +206,7 @@ def correct_by_consensus(input_file, output_file):
 				predicted_sequence = predicted_sequence.split(',')
 				predicted_score = float(row['predicted_score'])
 				sequence_mass_index = int(round(compute_peptide_mass(predicted_sequence)
-																				* deepnovo_config.KNAPSACK_AA_RESOLUTION))
+																				* aa_config.KNAPSACK_AA_RESOLUTION))
 				feature = {'row': row,
 									 'predicted_sequence': predicted_sequence,
 									 'predicted_score': predicted_score}
@@ -372,7 +372,7 @@ def select_top_k(input_file, output_file, top_k, split_char, col_score):
 					
 #~ top_k = 7673
 #~ split_char = '\t|\n'
-#~ col_score = deepnovo_config.pcol_score_max
+#~ col_score = aa_config.pcol_score_max
 #~ input_file = "data.training/dia.pecan.plasma.2018_03_29/testing.unlabeled.csv.deepnovo_denovo"
 #~ output_file = input_file + ".topk"
 #~ select_top_k(input_file, output_file, top_k, split_char, col_score)
@@ -398,8 +398,8 @@ def filter_multifeature(input_file):
 	with open(input_file, 'r') as input_handle:
 		# header
 		header_line = input_handle.readline()
-		col_feature_id = deepnovo_config.col_feature_id
-		col_scan_list = deepnovo_config.col_scan_list
+		col_feature_id = aa_config.col_feature_id
+		col_scan_list = aa_config.col_scan_list
 		feature_dict = {}
 		scan_dict = {}
 		# read feature and record feature_dict, scan_dict
