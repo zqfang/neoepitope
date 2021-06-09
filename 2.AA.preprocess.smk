@@ -19,6 +19,7 @@ TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
 TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
 
 #### OUTPUTS #####################
+
 # output files write to the working directory 
 MGF = expand("mgf/{sample}.mgf", sample=SAMPLES)
 FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
@@ -29,6 +30,10 @@ WEIGHTS = ["train/forward_deepnovo.pth", "train/backward_deepnovo.pth"]
 DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) 
 FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train','test', 'valid','denovo'])
 
+# SAMPLE indexes
+with open(os.path.join(WKDIR,"sample_indexes.txt"), 'w') as out:
+    for i, s in enumerate(SAMPLES):
+        out.write(f"{s}\tF{i}\n")
 # ================================================================================
 # Step 2: Preprocess
 # ================================================================================
