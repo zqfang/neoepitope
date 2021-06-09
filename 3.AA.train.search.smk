@@ -14,8 +14,8 @@ FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train
 
 ##### OUTPUTS ##########################
 WEIGHTS = ["checkpoints/forward_deepnovo.pth", "checkpoints/backward_deepnovo.pth"]
-DENOVO_PREDICT_ALL = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
-TEST = expand("features.csv.labeled.mass_corrected.test.noshare.deepnovo_denovo.{ext}", ext= ["denovo_only", "accuracy","scan2fea","multifea"])
+DENOVO_PREDICT_ALL = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.deepnovo_denovo.accuracy"
+TEST = expand("features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.{ext}", ext= ["denovo_only", "accuracy"])
 
 # ================================================================================
 # Step 2: Train personalized PointNovo model.
@@ -37,6 +37,7 @@ rule train:
         valid = "features.csv.labeled.mass_corrected.valid.nodup",
         locdict = LOCDICT,
         spectrums = SPECTRUM,
+        knapsack = KNAPSACK,
     output:
         "checkpoints/forward_deepnovo.pth",
         "checkpoints/backward_deepnovo.pth",
@@ -53,10 +54,11 @@ rule train:
         learning_rate = 0.001,
         model = smkpath,
     shell:
-        "python {params.model}/PointNovo/main.py --train "
+        "python {params.model}/PointNovo/main.py --train --train_dir checkpoints "
         "--spectrum {input.spectrums} --location_dict {input.locdict} "
         "--train_feature {input.train} "
-        "--valid_feature {input.valid} "        
+        "--valid_feature {input.valid} "
+        "--knapsack {input.knapsack} "        
 
 rule test:
     input:
@@ -70,8 +72,6 @@ rule test:
         "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo",
         "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.denovo_only",
         "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
-        "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.scan2fea",
-        "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.multifea",
         #DENOVO_PREDICT,
     params:
         batch_size = 16,
@@ -87,13 +87,14 @@ rule test:
         time_min='47:58:00', # less than 2 days
     run:
         # output a "feature.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo"
-        shell("python {modelpath}/PoinNovo/main.py --search_denovo "
+        shell("python {modelpath}/PoinNovo/main.py  --search_denovo --train_dir checkpoints "
               "--denovo_feature {input.test} "
               "--spectrum {input.spectrums} "
               "--location_dict {input.locdict} "
               "--knapsack {input.knapsack} ") 
         ## ...test.nodup.deepnovo_denovo is a predicted file for test
-        shell("python {modelpath}/main.py --test --test_feature {input.test} "
+        shell("python {modelpath}/main.py --test --train_dir checkpoints "
+              "--test_feature {input.test} "
               "--spectrum {input.spectrums} "
               "--location_dict {input.locdict} "
               "--knapsack {input.knapsack} ")
@@ -129,7 +130,7 @@ rule search_denovo:
         learning_rate = 0.001,
         modelpath = smkpath,
     shell:
-        "python {params.modelpath}/PointNovo/main.py --search_denovo "
+        "python {params.modelpath}/PointNovo/main.py --search_denovo --train_dir checkpoints "
         "--denovo_feature {input.denovo} "
         "--spectrum {input.spectrums} "
         "--location_dict {input.locdict} "
@@ -221,22 +222,20 @@ rule test_all_labels:
     output:
         "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only",
         "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.deepnovo_denovo.accuracy",
-        "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.deepnovo_denovo.scan2fea",
-        "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.multifea",
     params:
         batch_size = 16,
         epoch = 50,
         learning_rate = 0.001,
-        modelpath = "PoinNovo",
+        modelpath = smkpath,
     run:
-        shell("python {modelpath}/main.py --test "
+        shell("python {modelpath}/PointNovo/main.py --test --train_dir checkpoints "
             "--spectrum {input.spectrums} "
             "--test_feature {input.test} "
             "--predicted_file {input.predict}")
         # We get these results:
         #   "precision_AA_mass_db  = 0.9530"
         #   "precision_peptide_mass_db  = 0.8441"
-        shell("python {modelpath}/main.py --test "
+        shell("python {modelpath}/PointNovo/main.py --test --train_dir checkpoints "
             "--spectrum {input.spectrums} "
             "--test_feature {input.features} "
             "--predicted_file {input.predict}")
