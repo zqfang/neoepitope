@@ -1,0 +1,22 @@
+## configs for 
+
+
+# path to neoepitope repo
+SMKPATH: "/home/fangzq/github/neoepitope"
+# working directory
+WORKDIR: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+
+dbsearch:
+  protein_database: "uniprot_sprot.fasta"
+  contaminant: "UniProtContams_259_20170206.fasta"
+
+preprocess:
+  train_valid_test_ratio: ""
+
+train:
+  knapsack: ""
+  epoch: 20
+  learning_rate: 0.001
+
+
+prioritize: ""

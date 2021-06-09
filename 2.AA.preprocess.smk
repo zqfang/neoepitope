@@ -2,10 +2,13 @@ import os, glob, sys
 import joblib 
 import pandas as pd
 
+# configfile: "config.yaml"
+workdir: config['WORKDIR']
+
 # scripts path
-smkpath = "/home/fangzq/github/neoepitope"
+smkpath = config['SMKPATH']
 # working directory
-WKDIR = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+WKDIR = config['WORKDIR']
 
 ##### INPUTS #####################
 MZML = sorted(glob.glob(os.path.join(WKDIR, "peaks/*.mzML.gz")))

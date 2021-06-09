@@ -40,7 +40,7 @@ Deep learning models (Pytorch) for cancer immunology
 * MHCquant (recommended) 
 * on going pepeline: TODO
    ```shell
-   snakemake -s 1.AA.db.search.smk -p -j 12
+   snakemake -s 1.AA.db.search.smk --configfile config.yaml -p -j 12
    ```
 
 2. reformat the percolator output 
@@ -58,13 +58,13 @@ e.g. Tmuor HLA peptides (MSV000082648)
 2. run `2.AA.preprocess.smk` to generate train, test, valid data
   - makesure these two paths are correct
 
-```
-smkpath = "/data/bases/fangzq/ImmunoRep/neoepitope"
-WKDIR = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+```yaml
+SMKPATH: "/data/bases/fangzq/ImmunoRep/neoepitope"
+WORK: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 ```
 run
 ```
-snakemake -s 2.AA.preprocess.smk -j 32 -p 
+snakemake -s 2.AA.preprocess.smk --configfile config.yaml -j 32 -p 
 ```
 
 ### 2. Train and predict
@@ -81,14 +81,14 @@ python deepnovo_cython_setup.py build_ext --inplace
 ```shell
 cd ../
 ## config gpu resource if needed
-snakemake -s 3.AA.train.search.smk -p -j 8
+snakemake -s 3.AA.train.search.smk --configfile config.yaml -p -j 8
 ```
 
 ### 3. Neoantigen selection
 perform second round db search (comet + percolator).
 
 ```shell
-snakemake -s 4.AA.prioritize.smk
+snakemake -s 4.AA.prioritize.smk --configfile config.yaml -p -j 8
 ```
 
 ## Tumor classificatiton

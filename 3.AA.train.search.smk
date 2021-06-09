@@ -1,10 +1,14 @@
 
 import os, glob, sys 
 
+
+# configfile: "config.yaml"
+workdir: config['WORKDIR']
+
 # scripts path
-smkpath = "/home/fangzq/github/neoepitope"
+smkpath = config['SMKPATH']
 # working directory
-WKDIR = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+WKDIR = config['WORKDIR']
 
 ##### INPUTS #####################
 KNAPSACK = "knapsack.npy"
@@ -20,8 +24,6 @@ TEST = expand("features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.{e
 # ================================================================================
 # Step 2: Train personalized PointNovo model.
 # ================================================================================
-workdir: WKDIR
-
 include: "rules/aa_postprocess.py"
 
 

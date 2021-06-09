@@ -98,7 +98,14 @@
 import os, glob 
 
 
-workdir: "/data/bases/fangzq/ImmunoRep/data"
+# configfile: "config.yaml"
+workdir: config['WORKDIR']
+
+# scripts path
+smkpath = config['SMKPATH']
+# working directory
+WKDIR = config['WORKDIR']
+
 # MZML = glob.glob("MSV000082648/peaks/test_*.mzML.gz")
 # SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
 SAMPLES = ["test_sample_0_ms_run_0"] 
