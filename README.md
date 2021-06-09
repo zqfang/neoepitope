@@ -31,11 +31,21 @@ Deep learning models (Pytorch) for cancer immunology
    - cython
 
 
-## Neoantigen discovery
+## Neoantigen discovery workflow
 
 
+### 1. Database search from the very begining 
+1. comet + percolator:
+* MHCquant (recommended) 
+* on going pepeline: TODO
+   ```shell
+   snakemake -s 1.AA.db.search.smk -p -j 12
+   ```
 
-### Data Preprocessing
+2. reformat the percolator output 
+  - TODO
+
+### 1.1 Start from the published data
 e.g. Tmuor HLA peptides (MSV000082648)
 1. download peaks and percolator data from `MSV000082648`
 ```
@@ -44,36 +54,40 @@ e.g. Tmuor HLA peptides (MSV000082648)
        |- percolator
 ```
 
-2. run `prepare_pointnovo.smk` to generate train, test, valid data
+2. run `2.AA.preprocess.smk` to generate train, test, valid data
   - makesure these two paths are correct
 
 ```
 smkpath = "/data/bases/fangzq/ImmunoRep/neoepitope"
-DATA = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+WKDIR = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 ```
 run
 ```
-snakemake -s prepare_pointnovo.smk -j 32 -p 
+snakemake -s 2.AA.preprocess.smk -j 32 -p 
 ```
 
-### Train and predict
+### 2. Train and predict
 
-1. train, valid
+1. complie cython files
 ```shell
 cd PointNovo
 # build cython extension
 python deepnovo_cython_setup.py build_ext --inplace
-
-# set correct data path in config.py first, then
-# train
-python main.py --train
 ```
 
-2. test
+
+2. train, test, denovo search + postprocessing
 ```shell
-# denovo search first, then test
-python main.py --search_denovo
-python main.py --test
+cd ../
+## config gpu resource if needed
+snakemake -s 3.AA.train.search.smk -p -j 8
+```
+
+### 3. Neoantigen selection
+perform second round db search (comet + percolator).
+
+```shell
+snakemake -s 4.AA.prioritize.smk
 ```
 
 ## Tumor classificatiton
