@@ -27,6 +27,7 @@ parser.add_argument("--location_dict", required=True, help="feature's spectrum l
 parser.add_argument("--train_feature", required=False, help="features with mass corrected csv file.")
 parser.add_argument("--valid_feature", required=False, help="features with mass corrected csv file.")
 parser.add_argument("--test_feature", required=False, help="features with mass corrected csv file.")
+parser.add_argument("--predict_feature", required=False, help="features with mass corrected csv file.")
 parser.add_argument("--denovo_feature", required=False, help="features with mass corrected csv file.")
 parser.add_argument("--knapsack", required=False, default="knapsack.npy", help="use the knapsack algorithm to limit the search space." )
 
@@ -48,6 +49,7 @@ if args.train:
 
 if args.test:
     assert args.test_feature is not None
+    assert args.predict_feature is not None
     assert args.spectrum is not None
     assert args.location_dict is not None
 
@@ -317,6 +319,7 @@ knapsack_file = args.knapsack
 data_spectrums = args.spectrum
 input_feature_file_train = args.train_feature
 input_feature_file_valid = args.valid_feature
+input_feature_file_test = args.test_feature
 data_sepctrums_loc = args.location_dict
 
 input_spectrum_file_train = data_spectrums
@@ -346,6 +349,18 @@ if args.denovo_feature is not None:
     multifea_file =  predicted_file +  ".multifea" 
 
 
+if args.predict_feature is not None:
+
+    predicted_file = args.predict_feature # input_feature_file_test + ".deepnovo_denovo" 
+    # test accuracy
+    predicted_format = "deepnovo"
+    target_file = input_feature_file_test
+
+
+    accuracy_file =  predicted_file + ".accuracy"
+    denovo_only_file = predicted_file + ".denovo_only" 
+    scan2fea_file =  predicted_file +  ".scan2fea" 
+    multifea_file =  predicted_file +  ".multifea"     
 
 
 # db search files

@@ -6,7 +6,7 @@ import pandas as pd
 workdir: config['WORKDIR']
 
 # scripts path
-smkpath = config['SMKPATH']
+SMKPATH = config['SMKPATH']
 # working directory
 WKDIR = config['WORKDIR']
 
@@ -57,7 +57,7 @@ rule mzML2mgf:
         mgf = "mgf/{sample}.mgf",
         features = "mgf/{sample}.features.csv"
     params:
-        path = smkpath,
+        path = SMKPATH,
         sample_idx = lambda wildcards: SAMPLES.index(wildcards.sample), 
     shell:
         ## better to use hash, not jobid
@@ -99,7 +99,7 @@ rule train_val_test:
         denovo = "features/{sample}.features.csv.denovo.nodup",
     params:
         ratio = [0.8, 0.1, 0.1],
-        path = smkpath,
+        path = SMKPATH,
         outdir = "features"
     shell:
         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
@@ -186,7 +186,7 @@ rule split_feature_training_noshare:
         denovo = "features.csv.labeled.mass_corrected.denovo.nodup",
     params:
         ratio = [0.90, 0.05, 0.05],
-        path = smkpath,
+        path = SMKPATH,
         outdir = "."
     shell:
         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"

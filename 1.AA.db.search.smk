@@ -102,7 +102,7 @@ import os, glob
 workdir: config['WORKDIR']
 
 # scripts path
-smkpath = config['SMKPATH']
+SMKPATH = config['SMKPATH']
 # working directory
 WKDIR = config['WORKDIR']
 

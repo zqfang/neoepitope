@@ -6,7 +6,7 @@ import os, glob, sys
 workdir: config['WORKDIR']
 
 # scripts path
-smkpath = config['SMKPATH']
+SMKPATH = config['SMKPATH']
 # working directory
 WKDIR = config['WORKDIR']
 
@@ -54,7 +54,7 @@ rule train:
         batch_size = 16,
         epoch = 20,
         learning_rate = 0.001,
-        model = smkpath,
+        model = SMKPATH,
     shell:
         "python {params.model}/PointNovo/main.py --train --train_dir checkpoints "
         "--spectrum {input.spectrums} --location_dict {input.locdict} "
@@ -64,22 +64,20 @@ rule train:
 
 rule test:
     input:
-        test = "features.csv.labeled.mass_corrected.valid.nodup",
+        test = "features.csv.labeled.mass_corrected.test.nodup",
         locdict = LOCDICT,
         spectrums = SPECTRUM,
         knapsack = KNAPSACK,
         fweight = "checkpoints/forward_deepnovo.pth",
         bweight = "checkpoints/backward_deepnovo.pth",
     output: 
-        "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo",
-        "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.denovo_only",
-        "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
+        predict = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo",
+        #pred1 = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.denovo_only",
+        accurary = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
         #DENOVO_PREDICT,
     params:
         batch_size = 16,
-        epoch = 50,
-        learning_rate = 0.001,
-        modelpath = smkpath,
+        modelpath = SMKPATH,
     resources:
         partition='gpu',
         gpus=1,
@@ -97,6 +95,7 @@ rule test:
         ## ...test.nodup.deepnovo_denovo is a predicted file for test
         shell("python {modelpath}/main.py --test --train_dir checkpoints "
               "--test_feature {input.test} "
+              "--predict_feature {output.predict}"
               "--spectrum {input.spectrums} "
               "--location_dict {input.locdict} "
               "--knapsack {input.knapsack} ")
@@ -130,7 +129,7 @@ rule search_denovo:
         batch_size = 16,
         epoch = 50,
         learning_rate = 0.001,
-        modelpath = smkpath,
+        modelpath = SMKPATH,
     shell:
         "python {params.modelpath}/PointNovo/main.py --search_denovo --train_dir checkpoints "
         "--denovo_feature {input.denovo} "
@@ -228,7 +227,7 @@ rule test_all_labels:
         batch_size = 16,
         epoch = 50,
         learning_rate = 0.001,
-        modelpath = smkpath,
+        modelpath = SMKPATH,
     run:
         shell("python {modelpath}/PointNovo/main.py --test --train_dir checkpoints "
             "--spectrum {input.spectrums} "
