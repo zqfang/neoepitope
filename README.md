@@ -23,7 +23,7 @@ Deep learning models (Pytorch) for cancer immunology
 
 2. de novo sequencing 
    - python >= 3.7
-   - pytorch >= 1.0
+   - pytorch >= 1.5
    - scikit-learn
    - python-Levenshtein
    - biopython
