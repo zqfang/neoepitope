@@ -26,7 +26,6 @@ FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
 LOCATION = expand("mgf/{sample}.mgf.location.pytorch.pkl", sample=SAMPLES)
 LOCDICT = "spectrums.location.pytorch.pkl"
 
-WEIGHTS = ["train/forward_deepnovo.pth", "train/backward_deepnovo.pth"]
 DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) 
 FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train','test', 'valid','denovo'])
 
@@ -41,7 +40,7 @@ workdir: WKDIR
 include: "rules/aa_preprocess.py"
 
 rule target:
-    input: FEATURES, LOCDICT, WEIGHTS
+    input: FEATURES, LOCDICT
 
 # ================================================================================
 # Step 2.1: Prepare the training data.
