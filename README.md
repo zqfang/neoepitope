@@ -10,7 +10,10 @@ Deep learning models (Pytorch) for cancer immunology
    - tumor classification using tcr/bcr (inspired by [DeepBCR](https://bitbucket.org/liulab/deepbcr) ): TODO
    - other
 
-3. binding affinity model (inspired by [tcellmatch](https://github.com/theislab/tcellmatch)): TODO
+3. binding affinity model 
+   - 5' scRNA-seq + Tetmer: [tcellmatch](https://github.com/theislab/tcellmatch))
+   - MHCII binding: [BERTMHC](https://github.com/s6juncheng/BERTMHC)
+   - MHCI and II: [MHCAttnNet](https://github.com/gopuvenkat/MHCAttnNet)
 
 ## Dependency
 1. proteomics

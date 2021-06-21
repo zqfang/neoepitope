@@ -42,15 +42,21 @@ def parse(msdata, perlocator: pd.DataFrame, mgf, writer, sampleID=""):
         else:
             seq = ''
 
+        # drop problematic spectrums. these spectrums will make downstream work stop.
+        try:     
+            mz =  spectrum.getPrecursors()[0].getMZ()
+            ch = spectrum.getPrecursors()[0].getCharge()
+        except IndexError:
+            continue
+            # mgf.write("PEPMASS=unknown\n")
+        ch = spectrum.getPrecursors()[0].getCharge()
+        if ch <= 0: continue
+
+        ## write mgf output
         mgf.write("\nBEGIN IONS\n")
         mgf.write("TITLE=%s\n" % spectrum.getNativeID())
-        try:
-            mgf.write("PEPMASS=%s\n" % spectrum.getPrecursors()[0].getMZ())
-            ch = spectrum.getPrecursors()[0].getCharge()
-            if ch > 0:
-                mgf.write("CHARGE=%s\n" % ch)
-        except IndexError:
-            mgf.write("PEPMASS=unknown\n")
+        mgf.write("PEPMASS=%s\n" % spectrum.getPrecursors()[0].getMZ())
+        mgf.write("CHARGE=%s\n" % ch)
 
         # FIXME: makesure the scan attribute is corret
         # re-number scan id (add sample id)
@@ -58,13 +64,14 @@ def parse(msdata, perlocator: pd.DataFrame, mgf, writer, sampleID=""):
         mgf.write("SCANS=%s\n" % scanID)
         mgf.write("RTINSECONDS=%s\n" % spectrum.getRT())
         #mgf.write("SEQ=%s\n"%spectrum.getPeptideIdentifications())
+
         for peak in spectrum:
             mgf.write("%s %s\n" % (peak.getMZ(), peak.getIntensity() ))
         mgf.write("END IONS\n")
 
         feature = Feature(spec_id=scanID, 
-                          mz=spectrum.getPrecursors()[0].getMZ(), 
-                          z=spectrum.getPrecursors()[0].getCharge(), 
+                          mz=mz, 
+                          z=ch, 
                           rt_mean=spectrum.getRT(), 
                           seq=seq, 
                           scan=scanID,
