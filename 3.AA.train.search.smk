@@ -142,7 +142,7 @@ rule search_denovo:
 
 rule select_top_score:
     input:
-        test_acc = "features.csv.labeled.mass_corrected.valid.nodup.deepnovo_denovo.accuracy", # TODO: need to change to test
+        test_acc = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy", # TODO: need to change to test
         denovo = "features.csv.mass_corrected.deepnovo_denovo",
     output:
         top95 = "features.csv.mass_corrected.deepnovo_denovo.top95",
