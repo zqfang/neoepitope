@@ -182,10 +182,10 @@ rule correct_and_filter:
 #   "minlen_feature =  223507"
 #   "removed_feature =  10082"
 
-
 # Up to this step, we get the following file: 
 #   "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5"
 
+# now test against all labeled data
 rule test_all_labeled:
     input:
         spectrums = SPECTRUM,
@@ -197,14 +197,12 @@ rule test_all_labeled:
         bweight = "checkpoints/backward_deepnovo.pth",
         knapsack = KNAPSACK,
     output:
-        #pred1 = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.denovo_only",
         # test_acc = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
         all_labled_acc = ACCURACY_ALL_LABELED,
         #  The number of de novo only features is also reported and written to denovo_only
         denovo_only = "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
     params:
         batch_size = 16,
-        epoch = 50,
         learning_rate = 0.001,
         modelpath = SMKPATH,
     run:
@@ -222,11 +220,10 @@ rule test_all_labeled:
               "--spectrum {input.spectrums} "
               "--location_dict {input.locdict} "
               "--knapsack {input.knapsack} ")
-        # We get these results:
-        #   "precision_AA_mass_db  = 0.9797"
-        #   "precision_peptide_mass_db  = 0.9371"
         # Note that these accuracy results look better than those against the test set because the test set was not used for training the model.
-        # The number of de novo only features is also reported as
-        #   "predicted_only: 68721"
-        # and they are written to the file 
-        #   "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
+
+
+# The number of de novo only features is also reported as
+#   "predicted_only: 68721"
+# and they are written to the file 
+#   "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
