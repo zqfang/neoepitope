@@ -64,44 +64,44 @@ rule mzML2mgf:
         "{input.mzml} {input.perlco} {output.mgf} {output.features} {params.sample_idx} " # {jobid}
 
 
-rule mgf2location:
-    """
-    This step is really slow, and it will be very slow when train or test.
-    """
-    input: 
-        mgf = "mgf/{sample}.mgf",
-    output:
-        loc = "mgf/{sample}.mgf.location.pytorch.pkl"
-    run:
-        spectrum_location_dict = {}
-        line = True
-        with open(input.mgf, 'r') as f:
-            while line:
-                # The tell() method returns the current file position in a file stream.
-                current_location = f.tell() 
-                line = f.readline()
-                if "BEGIN IONS" in line:
-                    spectrum_location = current_location
-                elif "SCANS=" in line:
-                    scan = re.split('[=\r\n]', line)[1]
-                    spectrum_location_dict[scan] = spectrum_location
+# rule mgf2location:
+#     """
+#     This step is really slow, and it will be very slow when train or test.
+#     """
+#     input: 
+#         mgf = "mgf/{sample}.mgf",
+#     output:
+#         loc = "mgf/{sample}.mgf.location.pytorch.pkl"
+#     run:
+#         spectrum_location_dict = {}
+#         line = True
+#         with open(input.mgf, 'r') as f:
+#             while line:
+#                 # The tell() method returns the current file position in a file stream.
+#                 current_location = f.tell() 
+#                 line = f.readline()
+#                 if "BEGIN IONS" in line:
+#                     spectrum_location = current_location
+#                 elif "SCANS=" in line:
+#                     scan = re.split('[=\r\n]', line)[1]
+#                     spectrum_location_dict[scan] = spectrum_location
 
-        joblib.dump(spectrum_location_dict, output.loc)
+#         joblib.dump(spectrum_location_dict, output.loc)
 
 
-rule train_val_test:
-    input:   "mgf/{sample}.features.csv"
-    output:
-        train =  "features/{sample}.features.csv.train.nodup",
-        valid =  "features/{sample}.features.csv.valid.nodup",
-        test =  "features/{sample}.features.csv.test.nodup",
-        denovo = "features/{sample}.features.csv.denovo.nodup",
-    params:
-        ratio = [0.8, 0.1, 0.1],
-        path = SMKPATH,
-        outdir = "features"
-    shell:
-        "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
+# rule train_val_test:
+#     input:   "mgf/{sample}.features.csv"
+#     output:
+#         train =  "features/{sample}.features.csv.train.nodup",
+#         valid =  "features/{sample}.features.csv.valid.nodup",
+#         test =  "features/{sample}.features.csv.test.nodup",
+#         denovo = "features/{sample}.features.csv.denovo.nodup",
+#     params:
+#         ratio = [0.8, 0.1, 0.1],
+#         path = SMKPATH,
+#         outdir = "features"
+#     shell:
+#         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
 
 
 rule spectrum_merge:

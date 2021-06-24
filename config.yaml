@@ -1,12 +1,14 @@
-## configs for 
+## configs for neoantigen discovery pipeline
 
+# working directory
+WORKDIR: "/data/bases/fangzq/ImmunoRep/neoepitope/ABRF_DDA"
+
+# knapsack file 
+KNAPSACK: "/data/bases/fangzq/ImmunoRep/neoepitope/ABRF_DDA/fix_C_var_NMQ_knapsack.npy"
 
 # path to neoepitope repo
 SMKPATH: "/home/fangzq/github/neoepitope"
-# working directory
-WORKDIR: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 
-KNAPSACK: ""
 
 dbsearch:
   protein_database: "uniprot_sprot.fasta"

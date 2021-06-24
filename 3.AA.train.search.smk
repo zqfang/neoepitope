@@ -11,14 +11,14 @@ SMKPATH = config['SMKPATH']
 WKDIR = config['WORKDIR']
 
 ##### INPUTS #####################
-KNAPSACK = "knapsack.npy"
+KNAPSACK =  config['KNAPSACK']
 SPECTRUM = "spectrums.mgf"
 LOCDICT = "spectrums.location.pytorch.pkl"
 FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train','test', 'valid','denovo'])
 
 ##### OUTPUTS ##########################
 WEIGHTS = ["checkpoints/forward_deepnovo.pth", "checkpoints/backward_deepnovo.pth"]
-DENOVO_PREDICT_ALL = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.deepnovo_denovo.accuracy"
+ACCURACY_ALL_LABELED = "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.accuracy"
 TEST = expand("features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.{ext}", ext= ["denovo_only", "accuracy"])
 
 # ================================================================================
@@ -28,7 +28,7 @@ include: "rules/aa_postprocess.py"
 
 
 rule target:
-    input: WEIGHTS, DENOVO_PREDICT_ALL
+    input: WEIGHTS, ACCURACY_ALL_LABELED 
 
 # ================================================================================
 # Step 2.2: Training DeepNovo model.
@@ -72,7 +72,6 @@ rule test:
         bweight = "checkpoints/backward_deepnovo.pth",
     output: 
         predict = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo",
-        #pred1 = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.denovo_only",
         accurary = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
     params:
         # batch_size = 16,
@@ -143,7 +142,7 @@ rule search_denovo:
 
 rule select_top_score:
     input:
-        test_acc = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
+        test_acc = "features.csv.labeled.mass_corrected.valid.nodup.deepnovo_denovo.accuracy", # TODO: need to change to test
         denovo = "features.csv.mass_corrected.deepnovo_denovo",
     output:
         top95 = "features.csv.mass_corrected.deepnovo_denovo.top95",
@@ -153,7 +152,7 @@ rule select_top_score:
         # This script selects a threshold of de novo confidence scores and uses it to filter de novo results.
         # The score threshold is calculated based on a 95% cutoff of the testing accuracy obtained at rule test above.
         score_cutoff = find_score_cutoff(input.test_acc, params.accuracy_cutoff)
-        select_top_score(input.denvo, output.top95, params.score_cutoff)
+        select_top_score(input.denovo, output.top95, params.accuracy_cutoff)
 
 # After this step we'll get the file "feature.csv.mass_corrected.deepnovo_denovo.top95".
 # The score cutoff and the number of selected features will also be reported:
@@ -187,35 +186,39 @@ rule correct_and_filter:
 # Up to this step, we get the following file: 
 #   "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5"
 
-rule test_all_labels:
+rule test_all_labeled:
     input:
         spectrums = SPECTRUM,
+        locdict = LOCDICT,
         test = "features.csv.labeled.mass_corrected.test.nodup",
         features = "features.csv.labeled.mass_corrected",
-        predit = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5",
+        predict = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5",
         fweight = "checkpoints/forward_deepnovo.pth",
         bweight = "checkpoints/backward_deepnovo.pth",
+        knapsack = KNAPSACK,
     output:
-        "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only",
-        "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.accuracy",
+        #pred1 = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.denovo_only",
+        # test_acc = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
+        all_labled_acc = ACCURACY_ALL_LABELED,
+        #  The number of de novo only features is also reported and written to denovo_only
+        denovo_only = "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
     params:
         batch_size = 16,
         epoch = 50,
         learning_rate = 0.001,
         modelpath = SMKPATH,
     run:
-        shell("python {modelpath}/PointNovo/main.py --test --train_dir checkpoints "
-              "--test_feature {input.test} "
-              "--predict_feature {output.predict}"
-              "--spectrum {input.spectrums} "
-              "--location_dict {input.locdict} "
-              "--knapsack {input.knapsack} ")
-        # We get these results:
-        #   "precision_AA_mass_db  = 0.9530"
-        #   "precision_peptide_mass_db  = 0.8441"
-        shell("python {modelpath}/PointNovo/main.py --test --train_dir checkpoints "
+        # run on the test set with min5
+        # shell("python {params.modelpath}/PointNovo/main.py --test --train_dir checkpoints "
+        #       "--test_feature {input.test} "
+        #       "--predict_feature {output.predict}"
+        #       "--spectrum {input.spectrums} "
+        #       "--location_dict {input.locdict} "
+        #       "--knapsack {input.knapsack} ")
+        # now against all labeled data
+        shell("python {params.modelpath}/PointNovo/main.py --test --train_dir checkpoints "
               "--test_feature {input.features} "
-              "--predict_feature {output.predict}"
+              "--predict_feature {input.predict} "
               "--spectrum {input.spectrums} "
               "--location_dict {input.locdict} "
               "--knapsack {input.knapsack} ")
