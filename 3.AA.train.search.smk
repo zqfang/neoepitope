@@ -203,7 +203,6 @@ rule test_all_labeled:
         denovo_only = "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
     params:
         batch_size = 16,
-        learning_rate = 0.001,
         modelpath = SMKPATH,
     run:
         # run on the test set with min5

@@ -1,3 +1,21 @@
+import os, glob, sys 
+
+
+# configfile: "config.yaml"
+workdir: config['WORKDIR']
+
+# scripts path
+SMKPATH = config['SMKPATH']
+# working directory
+WKDIR = config['WORKDIR']
+
+##### INPUTS #####################
+KNAPSACK =  config['KNAPSACK']
+SPECTRUM = "spectrums.mgf"
+LOCDICT = "spectrums.location.pytorch.pkl"
+
+##### OUTPUTS ##########################
+
 
 # ================================================================================
 # Step 4.2: Run second round of PEAKS X DB search against the list of database and de novo peptides. 
@@ -13,8 +31,6 @@
     # ~ labeled_feature_file=data_training_dir + "feature.csv.labeled.mass_corrected",
     # ~ peptide_list_fasta=data_training_dir + "aa_workflow.step_4.peptide_list.fasta")
 # ================================================================================
-import os, glob, sys 
-
 include: "rules/aa_workflow_step_4.py"
 include: "rules/aa_workflow_step_5.py"
 
@@ -52,12 +68,40 @@ rule generate_denovo_peptides:
 #   Select the fasta file "aa_workflow.step_4.peptide_list.fasta" as the only database, no contaminant;
 #   Leave other settings the same as in Step 1.1.
 # Set FDR 1.0% and export the "DB search psm.csv" file, rename it to "aa_workflow.step_4.psm.csv".
-rule PeaksDBSearch_2:
-    input: 
-        fasta = "aa_workflow.step_4.peptide_list.fasta",
-    output:  "aa_workflow.step_4.psm.csv"
+# rule PeaksDBSearch_2:
+#     input: 
+#         fasta = "aa_workflow.step_4.peptide_list.fasta",
+#     output:  "aa_workflow.step_4.psm.csv"
+#     shell:
+#         "touch {output}"
+
+
+rule search_db:
+    input:
+        spectrums = SPECTRUM,
+        locdict = LOCDICT,
+        test = "features.csv.labeled.mass_corrected.test.nodup",
+        features = "features.csv.labeled.mass_corrected",
+        predict = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5",
+        fweight = "checkpoints/forward_deepnovo.pth",
+        bweight = "checkpoints/backward_deepnovo.pth",
+        knapsack = KNAPSACK,
+    output:
+        psm = "aa_workflow.step_4.psm.csv",
+        percolator_out = "pout.tsv"
+    params:
+        batch_size = 16,
+        modelpath = SMKPATH,
     shell:
-        "touch {output}"
+        # run on the test set with min5
+        "python {params.modelpath}/PointNovo/main.py --search_db "
+        "--train_dir checkpoints "
+        "--search_feature {input.features} "
+        "--spectrum {input.spectrums} "
+        "--location_dict {input.locdict} "
+        "--knapsack {input.knapsack} "
+        "--db_output {output.percolator_out} "
+
 
 # Extract de novo peptides from the PSMs of PEAKS X DB search round 2.
 # ======================= UNCOMMENT and RUN ======================================
