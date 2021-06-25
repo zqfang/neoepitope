@@ -240,7 +240,7 @@ def correct_by_consensus(input_file, output_file):
 							consensus_candidate[predicted_sequence] += predicted_score_prob
 						else:
 							consensus_candidate[predicted_sequence] = predicted_score_prob
-					consensus_sequence = max(consensus_candidate.iterkeys(), key=(lambda key: consensus_candidate[key]))
+					consensus_sequence = max(list(consensus_candidate.keys()), key=(lambda key: consensus_candidate[key]))
 					consensus_sequence = consensus_sequence.split(',')
 
 				# calculate distance, correct sequence by the consensus, write to output
