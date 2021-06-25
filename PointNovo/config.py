@@ -14,22 +14,32 @@ from itertools import combinations
 # ==============================================================================
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--train_dir", type=str, default="checkpoints")
+parser.add_argument("--weight_dir", type=str, default="checkpoints")
 parser.add_argument("--beam_size", type=int, default="5")
 parser.add_argument("--train", dest="train", action="store_true")
-parser.add_argument("--search_denovo", dest="search_denovo", action="store_true")
-parser.add_argument("--search_db", dest="search_db", action="store_true")
 # parser.add_argument("--valid", dest="valid", action="store_true")
 parser.add_argument("--test", dest="test", action="store_true")
+parser.add_argument("--search_denovo", dest="search_denovo", action="store_true")
+parser.add_argument("--search_db", dest="search_db", action="store_true")
 
+## options for each mode
 parser.add_argument("--spectrum", required=True, help="mgf file")
-parser.add_argument("--location_dict", required=True, help="feature's spectrum location of the mf file.")
-parser.add_argument("--train_feature", required=False, help="features with mass corrected csv file.")
-parser.add_argument("--valid_feature", required=False, help="features with mass corrected csv file.")
-parser.add_argument("--test_feature", required=False, help="features with mass corrected csv file.")
-parser.add_argument("--predict_feature", required=False, help="features with mass corrected csv file.")
-parser.add_argument("--denovo_feature", required=False, help="features with mass corrected csv file.")
-parser.add_argument("--knapsack", required=False, default="knapsack.npy", help="use the knapsack algorithm to limit the search space." )
+parser.add_argument("--location_dict", required=True, 
+                    help="feature's spectrum location of the mf file.")
+parser.add_argument("--train_feature", required=False, 
+                    help="features with mass corrected csv file.")
+parser.add_argument("--valid_feature", required=False, 
+                    help="features with mass corrected csv file.")
+parser.add_argument("--test_feature", required=False, 
+                    help="features with mass corrected csv file.")
+parser.add_argument("--predict_feature", required=False, 
+                    help="files from search_denovo output.")
+parser.add_argument("--denovo_feature", required=False, 
+                    help="features with mass corrected csv file.")
+parser.add_argument("--knapsack", required=False, default="knapsack.npy", 
+                    help="use the knapsack algorithm to limit the search space." )
+parser.add_argument("--fasta", required=False, default="proteome.fasta", 
+                    help = "proteome fasta with or without neoantigen peptides." )
 
 
 parser.set_defaults(train=False)
@@ -58,8 +68,15 @@ if args.search_denovo:
     assert args.spectrum is not None
     assert args.location_dict is not None
 
+if args.search_db:
+    assert args.denovo_feature is not None
+    assert args.spectrum is not None
+    assert args.location_dict is not None    
+    assert args.fasta is not None
+
+
 FLAGS = args
-train_dir = FLAGS.train_dir
+train_dir = FLAGS.weight_dir
 use_lstm = False
 
 # ==============================================================================
@@ -134,7 +151,7 @@ normalizing_mean_n = 10
 
 inference_value_max_batch_size = 20
 num_psm_per_scan_for_percolator = 10
-db_fasta_file = "fasta_files/uniprot_sprot_human_with_decoy.fasta"
+db_fasta_file = args.fasta #"fasta_files/uniprot_sprot_human_with_decoy.fasta"
 num_db_searcher_worker = 8
 fragment_ion_mz_diff_threshold = 0.02
 quick_scorer = "num_matched_ions"
@@ -308,12 +325,8 @@ print("max_gradient_norm ", max_gradient_norm)
 
 
 data_format = "mgf"
-cleavage_rule = "trypsin"  ##
+cleavage_rule = "trypsin"  ## TODO: for neoantigen discovery !!!
 num_missed_cleavage = 2
-knapsack_file = "ABRF_DDA/knapsack.npy"
-data_dir = "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
-data_spectrums = sorted(glob.glob(os.path.join(data_dir, "mgf/train_*mgf")))
-data_samples = [os.path.basename(spec).replace(".mgf", "") for spec in data_spectrums]
 
 knapsack_file = args.knapsack
 data_spectrums = args.spectrum
@@ -364,9 +377,10 @@ if args.predict_feature is not None:
 
 
 # db search files
-search_db_input_spectrum_file = "Lumos_data/PXD008999/export_0.mgf"
-search_db_input_feature_file = "Lumos_data/PXD008999/export_0.csv"
-db_output_file = search_db_input_feature_file + '.pin'
+if args.search_db:
+    search_db_input_spectrum_file = args.spectrum # "Lumos_data/PXD008999/export_0.mgf"
+    search_db_input_feature_file = args.denovo_feature #  "Lumos_data/PXD008999/export_0.csv"
+    db_output_file = search_db_input_feature_file + '.pin'
 
 
 

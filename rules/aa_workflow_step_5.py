@@ -1,6 +1,3 @@
-from __future__ import print_function
-
-
 import sys
 import csv
 import re
@@ -8,10 +5,9 @@ from Bio import SeqIO
 from Bio.SeqIO import FastaIO
 import Levenshtein
 import multiprocessing
-num_processes = 8
 import time
 
-
+num_processes = 8
 WEAK_BINDING = 2.0 # NetMHC weak binding rank
 STRONG_BINDING = 0.5 # NetMHC strong binding rank
 
@@ -145,7 +141,7 @@ def read_denovo_psm(psm_file):
   print("read_denovo_psm()")
   print("psm_file:", psm_file)
 
-  # store PSM of denovo peptides in a dictionary 
+  # store PSM of denovo peptides in a dictionary
   # {peptide: {'num_psm': , 'total_score': , 'total_abundance'}}
   denovo_peptide_psm = {}
   with open(psm_file, 'r') as input_handle:
@@ -180,7 +176,7 @@ def read_netmhc(netmhc_file):
   print("read_netmhc()")
   print("netmhc_file:", netmhc_file)
 
-  # store NetMHC predictions of denovo peptides in a dictionary 
+  # store NetMHC predictions of denovo peptides in a dictionary
   # {peptide: {'best_nM': , 'best_rank': , 'is_weak_binding': , 'is_strong_binding': }}
   peptide_netmhc = {}
   with open(netmhc_file, 'r') as input_handle:
@@ -213,7 +209,7 @@ def read_immunogenicity(immunogenicity_file):
   print("read_immunogenicity()")
   print("immunogenicity_file:", immunogenicity_file)
 
-  # store immunogenicity of denovo peptides in a dictionary 
+  # store immunogenicity of denovo peptides in a dictionary
   # {peptide: {'immunogenicity': }}
   peptide_immunogenicity = {}
   with open(immunogenicity_file, 'r') as input_handle:
@@ -384,7 +380,7 @@ def find_mutation(peptide_list, protein_list):
   print()
 
   return peptide_mutation, protein_mutation
-        
+
 
 def read_missense_snp(snp_file, snp_enst_fasta, snp_sample_id):
 
@@ -584,12 +580,6 @@ def step_5(psm_file, netmhc_file, immunogenicity_file, db_fasta_file, labeled_fe
                        if denovo_mutation[peptide]['num_missense_notflanking'] >= 1
                        and denovo_psm[peptide]['num_psm'] >= 2])
   print("num_selection :", num_selection)
-
-
-
-
-
-
 
 
 

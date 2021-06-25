@@ -437,8 +437,8 @@ class DBSearchData:
 
 
 class DBSearchDataset(BaseDataset):
-    def __init__(self, feature_filename, spectrum_filename, db_searcher: DataBaseSearcher):
-        super(DBSearchDataset, self).__init__(feature_filename, spectrum_filename)
+    def __init__(self, feature_filename, spectrum_filename, spectrum_location_dict:str, db_searcher: DataBaseSearcher):
+        super(DBSearchDataset, self).__init__(feature_filename, spectrum_filename, spectrum_location_dict)
         self.db_searcher = db_searcher
         if config.quick_scorer == "num_matched_ions":
             self.quick_scorer = self.get_num_matched_fragment_ions

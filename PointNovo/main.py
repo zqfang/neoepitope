@@ -73,6 +73,7 @@ def main():
         db_searcher = DataBaseSearcher(config.db_fasta_file)
         dataset = DBSearchDataset(config.search_db_input_feature_file,
                                   config.search_db_input_spectrum_file,
+                                  config.data_sepctrums_loc,
                                   db_searcher)
         num_spectra = len(dataset)
 
@@ -94,9 +95,9 @@ def main():
         psm_ranker.search()
         writer.close()
         # call percolator
-        with open(f"{config.db_output_file}" + '.psms', "w") as fw:
-            subprocess.run(["percolator", "-X", "/tmp/pout.xml", f"{config.db_output_file}"],
-                           stdout=fw)
+        # with open(f"{config.db_output_file}" + '.psms', "w") as fw:
+        #     subprocess.run(["percolator", "-X", "/tmp/pout.xml", f"{config.db_output_file}"],
+        #                    stdout=fw)
 
     else:
         raise RuntimeError("unspecified mode")

@@ -17,6 +17,47 @@ def drop_modification(aa_string):
     return _mod_prog.sub("", aa_string)
 
 
+def parse_raw_sequence(raw_sequence: str):
+    raw_sequence_len = len(raw_sequence)
+    peptide = []
+    index = 0
+    while index < raw_sequence_len:
+        if raw_sequence[index] == "(":
+            if peptide[-1] == "C" and raw_sequence[index:index + 8] == "(+57.02)":
+                peptide[-1] = "C(Carbamidomethylation)"
+                index += 8
+            elif peptide[-1] == 'M' and raw_sequence[index:index + 8] == "(+15.99)":
+                peptide[-1] = 'M(Oxidation)'
+                index += 8
+            elif peptide[-1] == 'N' and raw_sequence[index:index + 6] == "(+.98)":
+                peptide[-1] = 'N(Deamidation)'
+                index += 6
+            elif peptide[-1] == 'Q' and raw_sequence[index:index + 6] == "(+.98)":
+                peptide[-1] = 'Q(Deamidation)'
+                index += 6
+            elif peptide[-1] == 'S' and raw_sequence[index:index + 8] == "(+79.97)":
+                peptide[-1] = "S(Phosphorylation)"
+                index += 8
+            elif peptide[-1] == 'T' and raw_sequence[index:index + 8] == "(+79.97)":
+                peptide[-1] = "T(Phosphorylation)"
+                index += 8
+            elif peptide[-1] == 'Y' and raw_sequence[index:index + 8] == "(+79.97)":
+                peptide[-1] = "Y(Phosphorylation)"
+                index += 8
+            else:  # unknown modification
+                logger.warning(f"unknown modification in seq {raw_sequence}")
+                return False, peptide
+        else:
+            peptide.append(raw_sequence[index])
+            index += 1
+
+    for aa in peptide:
+        if aa not in config.vocab:
+            logger.warning(f"unknown modification in seq {raw_sequence}")
+            return False, peptide
+    return True, peptide
+
+
 def compute_peptide_mass(peptide: list):
     """
 
@@ -27,7 +68,6 @@ def compute_peptide_mass(peptide: list):
     peptide_neutral_mass = config.mass_N_terminus + config.mass_C_terminus
     peptide_mass_l = peptide_neutral_mass
     peptide_mass_u = peptide_neutral_mass
-
     for aa in peptide:
         peptide_neutral_mass += config.mass_AA[aa]
         peptide_mass_l += config.mass_AA[aa]
@@ -139,6 +179,8 @@ class DataBaseSearcher(object):
 
             # create a peptide to protein accession id map.
             # keys here are all out of modification.
+
+
             peptide_2_protein_id = {}
             for record in record_list:
                 protein_sequence = str(record.seq)
@@ -176,6 +218,8 @@ class DataBaseSearcher(object):
             peptide_mass_array = np.zeros(peptide_count)
             pepmod_maxmass_array = np.zeros(peptide_count)
             for index, peptide in enumerate(peptide_list):
+                # ok, peptide = parse_raw_sequence(peptide)
+                # if not ok: continue
                 neutral_mass, mass_l, mass_u = compute_peptide_mass(peptide)
                 peptide_mass_array[index] = neutral_mass
                 pepmod_maxmass_array[index] = mass_u
