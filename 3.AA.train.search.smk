@@ -62,41 +62,41 @@ rule train:
         "--valid_feature {input.valid} "
         "--knapsack {input.knapsack} "        
 
-rule test:
-    input:
-        test = "features.csv.labeled.mass_corrected.test.nodup",
-        locdict = LOCDICT,
-        spectrums = SPECTRUM,
-        knapsack = KNAPSACK,
-        fweight = "checkpoints/forward_deepnovo.pth",
-        bweight = "checkpoints/backward_deepnovo.pth",
-    output: 
-        predict = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo",
-        accurary = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
-    params:
-        # batch_size = 16,
-        modelpath = SMKPATH,
-    resources:
-        partition='gpu',
-        gpus=1,
-        cpus=8,
-        cpu_mem='8g',
-        gpu_mem='GPU_MEM:16GB',
-        time_min='47:58:00', # less than 2 days
-    run:
-        # output a "feature.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo"
-        shell("python {modelpath}/PoinNovo/main.py  --search_denovo --train_dir checkpoints "
-              "--denovo_feature {input.test} "
-              "--spectrum {input.spectrums} "
-              "--location_dict {input.locdict} "
-              "--knapsack {input.knapsack} ") 
-        ## ...test.nodup.deepnovo_denovo is a predicted file for test
-        shell("python {modelpath}/main.py --test --train_dir checkpoints "
-              "--test_feature {input.test} "
-              "--predict_feature {output.predict}"
-              "--spectrum {input.spectrums} "
-              "--location_dict {input.locdict} "
-              "--knapsack {input.knapsack} ")
+# rule test:
+#     input:
+#         test = "features.csv.labeled.mass_corrected.test.nodup",
+#         locdict = LOCDICT,
+#         spectrums = SPECTRUM,
+#         knapsack = KNAPSACK,
+#         fweight = "checkpoints/forward_deepnovo.pth",
+#         bweight = "checkpoints/backward_deepnovo.pth",
+#     output: 
+#         predict = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo",
+#         accurary = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
+#     params:
+#         # batch_size = 16,
+#         modelpath = SMKPATH,
+#     resources:
+#         partition='gpu',
+#         gpus=1,
+#         cpus=8,
+#         cpu_mem='8g',
+#         gpu_mem='GPU_MEM:16GB',
+#         time_min='47:58:00', # less than 2 days
+#     run:
+#         # output a "feature.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo"
+#         shell("python {params.modelpath}/PoinNovo/main.py  --search_denovo --train_dir checkpoints "
+#               "--denovo_feature {input.test} "
+#               "--spectrum {input.spectrums} "
+#               "--location_dict {input.locdict} "
+#               "--knapsack {input.knapsack} ") 
+#         ## ...test.nodup.deepnovo_denovo is a predicted file for test
+#         shell("python {params.modelpath}/main.py --test --train_dir checkpoints "
+#               "--test_feature {input.test} "
+#               "--predict_feature {output.predict}"
+#               "--spectrum {input.spectrums} "
+#               "--location_dict {input.locdict} "
+#               "--knapsack {input.knapsack} ")
         
 
 # The testing accuracy at the amino acid (AA) and peptide levels will be reported as following:
@@ -113,27 +113,27 @@ rule test:
 # Run DeepNovo de novo sequencing on all features (label and unlabeled)
 # The de novo results will be written to the file "feature.csv.mass_corrected.deepnovo_denovo".
 
-rule search_denovo:
-    input:
-        locdict = LOCDICT,
-        spectrums = SPECTRUM,
-        knapsack = KNAPSACK,
-        denovo = "features.csv.mass_corrected",
-        fweight = "checkpoints/forward_deepnovo.pth",
-        bweight = "checkpoints/backward_deepnovo.pth",
-    output: 
-        "features.csv.mass_corrected.deepnovo_denovo",
-    params:
-        # batch_size = 16,
-        # epoch = 50,
-        # learning_rate = 0.001,
-        modelpath = SMKPATH,
-    shell:
-        "python {params.modelpath}/PointNovo/main.py --search_denovo --train_dir checkpoints "
-        "--denovo_feature {input.denovo} "
-        "--spectrum {input.spectrums} "
-        "--location_dict {input.locdict} "
-        "--knapsack {input.knapsack} "
+# rule search_denovo:
+#     input:
+#         locdict = LOCDICT,
+#         spectrums = SPECTRUM,
+#         knapsack = KNAPSACK,
+#         denovo = "features.csv.mass_corrected",
+#         fweight = "checkpoints/forward_deepnovo.pth",
+#         bweight = "checkpoints/backward_deepnovo.pth",
+#     output: 
+#         "features.csv.mass_corrected.deepnovo_denovo",
+#     params:
+#         # batch_size = 16,
+#         # epoch = 50,
+#         # learning_rate = 0.001,
+#         modelpath = SMKPATH,
+#     shell:
+#         "python {params.modelpath}/PointNovo/main.py --search_denovo --train_dir checkpoints "
+#         "--denovo_feature {input.denovo} "
+#         "--spectrum {input.spectrums} "
+#         "--location_dict {input.locdict} "
+#         "--knapsack {input.knapsack} "
 
 # ================================================================================
 # Step 4: Quality control.
@@ -152,7 +152,7 @@ rule select_top_score:
         # This script selects a threshold of de novo confidence scores and uses it to filter de novo results.
         # The score threshold is calculated based on a 95% cutoff of the testing accuracy obtained at rule test above.
         score_cutoff = find_score_cutoff(input.test_acc, params.accuracy_cutoff)
-        select_top_score(input.denovo, output.top95, params.accuracy_cutoff)
+        select_top_score(input.denovo, output.top95, score_cutoff)
 
 # After this step we'll get the file "feature.csv.mass_corrected.deepnovo_denovo.top95".
 # The score cutoff and the number of selected features will also be reported:
