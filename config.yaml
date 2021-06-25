@@ -3,6 +3,12 @@
 # working directory
 WORKDIR: "/data/bases/fangzq/ImmunoRep/neoepitope/ABRF_DDA"
 
+# Input Data
+FEATURES: ""
+SPECTRUM: ""
+SPECTRUM_LOCATION_DICT: ""
+PROTEOME_PLUS_CONTAMINATION: "/data/bases/fangzq/ImmunoRep/data/human.proteome.plus.contams.fasta"
+
 # knapsack file 
 KNAPSACK: "/data/bases/fangzq/ImmunoRep/neoepitope/ABRF_DDA/fix_C_var_NMQ_knapsack.npy"
 

@@ -19,6 +19,7 @@ FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train
 ##### OUTPUTS ##########################
 WEIGHTS = ["checkpoints/forward_deepnovo.pth", "checkpoints/backward_deepnovo.pth"]
 ACCURACY_ALL_LABELED = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.accuracy"
+DENOVO_ONLY = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
 TEST = expand("features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.{ext}", ext= ["denovo_only", "accuracy"])
 
 # ================================================================================
@@ -56,7 +57,7 @@ rule train:
         learning_rate = 0.001,
         model = SMKPATH,
     shell:
-        "python {params.model}/PointNovo/main.py --train --train_dir checkpoints "
+        "python {params.model}/PointNovo/main.py --train --weight_dir checkpoints "
         "--spectrum {input.spectrums} --location_dict {input.locdict} "
         "--train_feature {input.train} "
         "--valid_feature {input.valid} "
@@ -85,13 +86,13 @@ rule train:
 #         time_min='47:58:00', # less than 2 days
 #     run:
 #         # output a "feature.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo"
-#         shell("python {params.modelpath}/PoinNovo/main.py  --search_denovo --train_dir checkpoints "
+#         shell("python {params.modelpath}/PoinNovo/main.py  --search_denovo --weight_dir checkpoints "
 #               "--denovo_feature {input.test} "
 #               "--spectrum {input.spectrums} "
 #               "--location_dict {input.locdict} "
 #               "--knapsack {input.knapsack} ") 
 #         ## ...test.nodup.deepnovo_denovo is a predicted file for test
-#         shell("python {params.modelpath}/main.py --test --train_dir checkpoints "
+#         shell("python {params.modelpath}/main.py --test --weight_dir checkpoints "
 #               "--test_feature {input.test} "
 #               "--predict_feature {output.predict}"
 #               "--spectrum {input.spectrums} "
@@ -129,7 +130,7 @@ rule train:
 #         # learning_rate = 0.001,
 #         modelpath = SMKPATH,
 #     shell:
-#         "python {params.modelpath}/PointNovo/main.py --search_denovo --train_dir checkpoints "
+#         "python {params.modelpath}/PointNovo/main.py --search_denovo --weight_dir checkpoints "
 #         "--denovo_feature {input.denovo} "
 #         "--spectrum {input.spectrums} "
 #         "--location_dict {input.locdict} "
@@ -206,14 +207,14 @@ rule test_all_labeled:
         modelpath = SMKPATH,
     run:
         # run on the test set with min5
-        # shell("python {params.modelpath}/PointNovo/main.py --test --train_dir checkpoints "
+        # shell("python {params.modelpath}/PointNovo/main.py --test --weight_dir checkpoints "
         #       "--test_feature {input.test} "
         #       "--predict_feature {output.predict}"
         #       "--spectrum {input.spectrums} "
         #       "--location_dict {input.locdict} "
         #       "--knapsack {input.knapsack} ")
         # now against all labeled data
-        shell("python {params.modelpath}/PointNovo/main.py --test --train_dir checkpoints "
+        shell("python {params.modelpath}/PointNovo/main.py --test --weight_dir checkpoints "
               "--test_feature {input.features} "
               "--predict_feature {input.predict} "
               "--spectrum {input.spectrums} "
