@@ -104,7 +104,7 @@ CODON_AA = { # dictionary {codon: aa}
   'GGG':'G'}
 
 AA_CODON ={} # dictionary {aa: list of codons}
-for codon, aa in CODON_AA.iteritems():
+for codon, aa in CODON_AA.items():
   if aa in AA_CODON:
     AA_CODON[aa].append(codon)
   else:
@@ -124,7 +124,7 @@ for aa1 in AA_CODON:
       AA_PAIRWISE_DISTANCE[(aa2, aa1)] = min_distance
 
 # a mutation pair (aa1, aa2) is missense if their codons are different by 1 nucleotide
-AA_PAIR_MISSENSE = [(aa1, aa2) for (aa1, aa2), min_distance in AA_PAIRWISE_DISTANCE.iteritems()
+AA_PAIR_MISSENSE = [(aa1, aa2) for (aa1, aa2), min_distance in AA_PAIRWISE_DISTANCE.items()
                     if min_distance == 1]
 # for now, remove N-D, Q-E because not sure mutations or modifications
 AA_PAIR_MISSENSE.remove(('N', 'D'))
@@ -290,7 +290,7 @@ def read_db_peptide(labeled_feature_file):
   return db_peptide_set
 
 
-def hamming1_align((peptide, protein_list)):
+def hamming1_align(peptide, protein_list):
 
   # I and L are considered the same in this alignment
   query = peptide.replace('I', 'L')
