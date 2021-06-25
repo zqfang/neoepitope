@@ -18,7 +18,7 @@ FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train
 
 ##### OUTPUTS ##########################
 WEIGHTS = ["checkpoints/forward_deepnovo.pth", "checkpoints/backward_deepnovo.pth"]
-ACCURACY_ALL_LABELED = "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.accuracy"
+ACCURACY_ALL_LABELED = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.accuracy"
 TEST = expand("features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.{ext}", ext= ["denovo_only", "accuracy"])
 
 # ================================================================================
@@ -200,7 +200,7 @@ rule test_all_labeled:
         # test_acc = "features.csv.labeled.mass_corrected.test.nodup.deepnovo_denovo.accuracy",
         all_labled_acc = ACCURACY_ALL_LABELED,
         #  The number of de novo only features is also reported and written to denovo_only
-        denovo_only = "feature.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
+        denovo_only = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
     params:
         batch_size = 16,
         modelpath = SMKPATH,
