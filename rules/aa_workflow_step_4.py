@@ -1,16 +1,23 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import csv
+import csv, re
 from Bio import SeqIO
 from Bio.SeqIO import FastaIO
-
+from Bio.Seq import Seq
 
 def drop_mod(peptide):
   peptide = peptide.replace("M(Oxidation)", "M")
   peptide = peptide.replace("N(Deamidation)", "N")
   peptide = peptide.replace("Q(Deamidation)", "Q")
+  peptide = peptide.replace("C(Carbamidomethylation)","C")
+  q
+  return peptide
+
+# # reformat input fasta, remove modifciation
+def remove_mod(peptide:str):
+  pat = re.compile("\(\+[0-9.]+\)", re.IGNORECASE)
+  if pat.search(peptide):
+      replaces = pat.findall(peptide)
+      for _ in replaces:
+          peptide = pat.sub("", peptide)
   return peptide
 
 
@@ -55,6 +62,8 @@ def preprocess(denovo_file, db_fasta_file, labeled_feature_file, peptide_list_fa
           peptide = line[seq_index]
           peptide = drop_mod(peptide)
           peptide = ''.join(peptide.split(','))
+          peptide = remove_mod(peptide)
+          peptide = drop_mod_peaks(peptide)
           if peptide in denovo_peptide_set:
               continue
           else:
@@ -87,6 +96,7 @@ def preprocess(denovo_file, db_fasta_file, labeled_feature_file, peptide_list_fa
     csv_reader = csv.DictReader(input_handle, delimiter=',')
     for row in csv_reader:
       peptide = drop_mod_peaks(row['seq'])
+      peptide = remove_mod(peptide)
       db_peptide_set.add(peptide)
 
   with open(peptide_list_fasta, 'w') as output_handle:

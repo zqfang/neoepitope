@@ -1,6 +1,7 @@
 import os, glob, sys 
 import pandas as pd
 
+
 # configfile: "config.yaml"
 workdir: config['WORKDIR']
 
@@ -55,6 +56,7 @@ rule generate_denovo_peptides:
                     labeled_feature_file=input.labeled,
                     peptide_list_fasta=output.fasta)
 
+
 # The numbers of de novo and database peptides are reported as following:
 #   "Number of top-scoring denovo peptides: 17318"
 #   "num_db_peptides = 25274"
@@ -67,8 +69,9 @@ rule generate_denovo_peptides:
 #   Leave other settings the same as in Step 1.1.
 # Set FDR 1.0% and export the "DB search psm.csv" file, rename it to "aa_workflow.step_4.psm.csv".
 
+
 # second run db search
-rule get_denovo_pnly_features:
+rule get_denovo_only_features:
     input: 
         denovo = DENOVO_ONLY,
         features = "features.csv.mass_corrected",
