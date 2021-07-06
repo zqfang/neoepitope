@@ -1,12 +1,13 @@
 ## configs for neoantigen discovery pipeline
 
 # working directory
-WORKDIR: "/data/bases/fangzq/ImmunoRep/neoepitope/ABRF_DDA"
+WORKDIR: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 
 # Input Data
 FEATURES: ""
 SPECTRUM: ""
 SPECTRUM_LOCATION_DICT: ""
+
 PROTEOME_PLUS_CONTAMINATION: "/data/bases/fangzq/ImmunoRep/data/human.proteome.plus.contams.fasta"
 
 # knapsack file 
@@ -17,8 +18,8 @@ SMKPATH: "/home/fangzq/github/neoepitope"
 
 
 dbsearch:
-  protein_database: "uniprot_sprot.fasta"
-  contaminant: "UniProtContams_259_20170206.fasta"
+  protein_database: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome.fasta"
+  contaminant: "/data/bases/fangzq/ImmunoRep/data/UniProtContams_259_20170206.fasta"
 
 preprocess:
   train_valid_test_ratio: ""
