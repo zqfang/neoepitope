@@ -3,12 +3,8 @@
 # working directory
 WORKDIR: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 
-# Input Data
-FEATURES: ""
-SPECTRUM: ""
-SPECTRUM_LOCATION_DICT: ""
-
-PROTEOME_PLUS_CONTAMINATION: "/data/bases/fangzq/ImmunoRep/data/human.proteome.plus.contams.fasta"
+## NOTE: For raw MS input file
+## store {sample}.mzML.gz in the peaks folder. e.g peaks/{sample}.mzML.gz 
 
 # knapsack file 
 KNAPSACK: "/data/bases/fangzq/ImmunoRep/neoepitope/ABRF_DDA/fix_C_var_NMQ_knapsack.npy"
@@ -18,16 +14,22 @@ SMKPATH: "/home/fangzq/github/neoepitope"
 
 
 dbsearch:
-  protein_database: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome.fasta"
+  full_db: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome_259contams_viruses_26tumorShared.fasta"
+  prot_db: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome.fasta"
   contaminant: "/data/bases/fangzq/ImmunoRep/data/UniProtContams_259_20170206.fasta"
+  prot_plus_contams: "/data/bases/fangzq/ImmunoRep/data/human.proteome.plus.contams.fasta"
 
-preprocess:
+
+data:
   train_valid_test_ratio: ""
+  features: ""
+  spectrum: ""
+  spectrum_location_dict: ""
 
 train:
   epoch: 20
   learning_rate: 0.001
-  batch_size: 20
+  batch_size: 24
 
 
 prioritize: ""

@@ -103,17 +103,18 @@ workdir: config['WORKDIR']
 
 # scripts path
 SMKPATH = config['SMKPATH']
-# working directory
-WKDIR = config['WORKDIR']
 
-# MZML = glob.glob("MSV000082648/peaks/test_*.mzML.gz")
-# SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
-SAMPLES = ["train_sample_0_ms_run_0"] 
+######## INPUTS ##########
+MZML = glob.glob(os.path.join(config['WORKDIR'], "peaks/*.mzML.gz"))
+SAMPLES = [mz.split("/")[-1].replace(".mzML.gz", "") for mz in MZML]
+#SAMPLES = ["train_sample_0_ms_run_0"] 
 
-PROT_DB = config['dbsearch']['protein_database']
+PROT_DB = config['dbsearch']['prot_db']
+FULL_DB = config['dbsearch']['full_db']
+
 CONTAMINANT = config['dbsearch']['contaminant']  # download containinants from MSV000084172
-TARGET_DECOY = "target.decoy.fasta"
-PERCOLATOR = expand("{sample}_perc.mzTab", sample=SAMPLES)
+TARGET_DECOY = "commet_percolator/target.decoy.fasta"
+PERCOLATOR = expand("commet_percolator/{sample}_perc.mzTab", sample=SAMPLES)
 
 ####### OpenMS MHC workflow #########################################################
 ## for Percolator: Search Engine (comet/MSGFPlus..) -> PeptideIndexer > FalseDiscoveryRate 
@@ -137,13 +138,14 @@ rule DecoyDatabase:
         enzyme = 'no cleavage', #'unspecific cleavage' is not working,
         decoy_string = "DECOY_",
         decoy_string_position = "prefix",
+        contams = "" if os.path.exists(FULL_DB) else CONTAMINANT
     threads: 6
     shell:
-        "DecoyDatabase -in {input.proteome} {input.contams} "
+        "DecoyDatabase -in {input.proteome} {params.contams} "
         "-out {output} -threads {threads} "
         "-decoy_string {params.decoy_string} "
         "-decoy_string_position {params.decoy_string_position} "
-        #"-enzyme '{params.enzyme}' " # <- won't work
+            #"-enzyme '{params.enzyme}' " # <- won't work
 
 
 rule PeakPicker:
@@ -158,16 +160,21 @@ rule PeakPicker:
         "-out {output}.picked.mzML "
         "-algorithm:ms_levels {params.pick_ms_levels}"
 
+rule decompress:
+    input:  "peaks/{sample}.mzML.gz"
+    output: temp("commet_percolator/{sample}.mzML")
+    shell:
+        "zcat {input} > {output}"
 
 rule CometAdaptor:
     """
     database search using comet
     """
     input:
-        mzML = "{sample}.mzML",
+        mzML = "commet_percolator/{sample}.mzML",
         fasta = TARGET_DECOY, 
     output:
-        idXML = protected("{sample}_comet.idXML"),
+        idXML = protected("commet_percolator/{sample}_comet.idXML"),
         #percolator_in = "{sample}.comet.pin.tsv",
     params: 
        enzyme = 'unspecific cleavage'
@@ -197,7 +204,7 @@ rule CometAdaptor:
 # IDPosteriorErrorProbability
 rule calc_peptide_posterior_error:
     input:
-        idxml = "{sample}_comet.idXML"
+        idxml = "commet_percolator/{sample}_comet.idXML"
     output:
         idxml = temp("{sample}_idpep.idXML")
     threads: 1
@@ -212,7 +219,7 @@ rule PeptideIndexer:
         idxml = "{sample}_idpep.idXML",
         fasta = TARGET_DECOY,
     output: 
-        "{sample}_pi.idXML"
+        temp("{sample}_pi.idXML")
     params:
         decoy_string = "DECOY_",
         decoy_position = "prefix", 
@@ -231,7 +238,7 @@ rule PeptideIndexer:
 
 rule FalseDiscoveryRate:
     input:  "{sample}_pi.idXML"
-    output: "{sample}_fdr.idXML"
+    output: temp("{sample}_fdr.idXML")
     threads: 1
     log:  'log/fdr_{sample}.log'
     shell:
@@ -243,7 +250,7 @@ rule FalseDiscoveryRate:
 # filter 
 rule filter_fdr_for_idalignment:
     input: "{sample}_fdr.idXML"
-    output: "{sample}_fdr_filt.idXML"
+    output: "commet_percolator/{sample}_fdr_filt.idXML"
     params:
         fdr = 0.0, # fdr threshold
         pep_min = 8,
@@ -260,8 +267,9 @@ rule filter_fdr_for_idalignment:
 # # This tool provides an algorithm to align the retention time scales of multiple input files, correcting shifts and distortions between them
 # # Corrects retention time distortions between maps, using information from peptides identified in different maps
 rule align_idx_files:
-    input: expand("{sample}_fdr_filt.idXML", sample=SAMPLES),  ## Note select the same sample but with multiple run ?
-    output: expand("{sample}_fdr_filt.trafoXML", sample=SAMPLES),  ###
+    ## FIXME: select the same sample with multiple run ? or combined all samples ??
+    input: expand("commet_percolator/{sample}_fdr_filt.idXML", sample=SAMPLES),  
+    output: expand("commet_percolator/{sample}_fdr_filt.trafoXML", sample=SAMPLES),  ###
     params:
         max_rt_alignment_shift=300,
     shell:
@@ -273,8 +281,8 @@ rule align_idx_files:
 # # 
 rule align_mzml_files: #using trafoXMLs
     input:
-        mzml= "{sample}.mzML",
-        trafo= "{sample}_fdr_filt.trafoXML",
+        mzml= "commet_percolator/{sample}.mzML",
+        trafo= "commet_percolator/{sample}_fdr_filt.trafoXML",
     output:
         "{sample}.aligned.mzML"
     threads: 1
@@ -289,9 +297,9 @@ rule align_peptideindex_files:
     """
     input:
         idxml="{sample}_pi.idXML",
-        trafo= "{sample}_fdr_filt.trafoXML",
+        trafo= "commet_percolator/{sample}_fdr_filt.trafoXML",
     output:
-        "{sample}_pi_aligned.idXML"
+        temp("{sample}_pi_aligned.idXML")
     threads: 1
     shell:
         "MapRTTransformer -in {input.idxml} "
@@ -301,7 +309,7 @@ rule align_peptideindex_files:
 
 rule merge_aligned_peptideindex_files:
     input: "{sample}_pi_aligned.idXML"
-    output: "{sample}_all_ids_merged.idXML"
+    output: temp("{sample}_all_ids_merged.idXML")
     shell:
         "IDMerger -in {input} "
         "-out {output} "
@@ -314,7 +322,7 @@ rule merge_aligned_peptideindex_files:
 
 rule PSMFeatureExtractor:
     input:  "{sample}_all_ids_merged.idXML", 
-    output: "{sample}_all_ids_merged_psm.idXML"
+    output: "commet_percolator/{sample}_all_ids_merged_psm.idXML"
     threads: 12
     shell:
         "PSMFeatureExtractor -in {input} -out {output} -threads {threads}"
@@ -323,8 +331,8 @@ rule PercolatorAdapter:
     """
     protein identification from shotgun proteomics datasets
     """
-    input: "{sample}_all_ids_merged_psm.idXML",
-    output: "{sample}_all_ids_merged_psm_perc.idXML",
+    input: "commet_percolator/{sample}_all_ids_merged_psm.idXML",
+    output: "commet_percolator/{sample}_all_ids_merged_psm_perc.idXML",
     params:
         enzyme = 'no_enzyme',
         decoy_prefix = "DECOY_",
@@ -348,8 +356,8 @@ rule PercolatorAdapter:
 
 # filter by percolator q-value
 rule filter_peptides:
-    input:  "{sample}_all_ids_merged_psm_perc.idXML",
-    output: "{sample}_all_ids_merged_psm_perc_filt.idXML",
+    input:  "commet_percolator/{sample}_all_ids_merged_psm_perc.idXML",
+    output: "commet_percolator/{sample}_all_ids_merged_psm_perc_filt.idXML",
     params:
         fdr = 0.0, # fdr threshold
         pep_min = 8,
@@ -364,8 +372,8 @@ rule filter_peptides:
 
 rule MzTabExporter:
     """Exports various XML formats to an mzTab file"""
-    input: "{sample}_all_ids_merged_psm_perc_filt.idXML",
-    output: "{sample}_perc.mzTab",
+    input: "commet_percolator/{sample}_all_ids_merged_psm_perc_filt.idXML",
+    output: "commet_percolator/{sample}_perc.mzTab",
     threads: 1
     priority: 53
     shell:
@@ -376,7 +384,7 @@ rule MzTabExporter:
 rule quantify_identifications_targeted:
     input:
         aligned = "{sample}.aligned.mzML",
-        idxml = "{sample}_all_ids_merged_psm_perc_filt.idXML",
+        idxml = "commet_percolator/{sample}_all_ids_merged_psm_perc_filt.idXML",
     output:
         "{sample}.featureXML",
     params: 
@@ -415,7 +423,7 @@ rule resolve_conflicts:
    
 rule export_text:
     input: "{sample}_all_features_merged_resolved.consensusXML"
-    output: "{sample}.csv"
+    output: "commet_percolator/{sample}.csv"
     shell:
         "TextExporter -in {input} -out {output} "
         "-threads {threads} "

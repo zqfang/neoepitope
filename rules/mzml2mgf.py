@@ -1,6 +1,7 @@
-import sys, csv
+import sys, csv, re
 import pyopenms
 import pandas as pd
+from pyteomics.mztab import MzTab 
 from dataclasses import dataclass
 
 @dataclass
@@ -16,18 +17,22 @@ class Feature:
         return [self.spec_id, self.mz, self.z, self.rt_mean, self.seq, self.scan, "0.0:1.0", "1.0"]
 
 
-def scan2idx(percolator: pd.DataFrame) -> dict:
+def scan2seq(percolator: pd.DataFrame) -> dict:
     scan = percolator['scan'].str.split(",")
     scan2idx_dict = {}
-    for i, row in scan.iteritems():
-        for s in row:
-            scan2idx_dict[s] = i
+    for i, row in percolator.iterrows():
+        scan = row['scan'].str.split(",")
+        for s in scan:
+            scan2idx_dict[s] = row['sequence']
+    # for i, row in scan.iteritems():
+    #     for s in row:
+    #         scan2idx_dict[s] = i
     return scan2idx_dict
         
 
 def parse(msdata, perlocator: pd.DataFrame, mgf, writer, sampleID=""):
     # Iterate through all spectra, skip all MS1 spectra and then write mgf format
-    scan2idx_dict = scan2idx(perlocator)
+    scan2seq_dict = scan2seq(perlocator)
     nr_ms2_spectra = 0
     for spectrum in msdata:
         if spectrum.getMSLevel() == 1:
@@ -36,9 +41,8 @@ def parse(msdata, perlocator: pd.DataFrame, mgf, writer, sampleID=""):
 
         scan = spectrum.getNativeID().split(" ")[-1][5:]
         
-        if scan in scan2idx_dict:
-            idx = scan2idx_dict[scan]
-            seq = perlocator.iloc[idx]['sequence']
+        if scan in scan2seq_dict:
+            seq = scan2seq_dict[scan]
         else:
             seq = ''
 
@@ -84,15 +88,27 @@ def parse(msdata, perlocator: pd.DataFrame, mgf, writer, sampleID=""):
 
 if __name__ == "__main__":
     if len(sys.argv) <= 5:
-        print ("Usage: mzML2pointnovo.py in_mzML in_percolator out_mgf out_feature.csv mzML_ID")
+        print ("Usage: mzML2pointnovo.py in_mzML in_mzTab out_mgf out_feature.csv mzML_ID")
         sys.exit()
 
     ## read inputs
     msdata = pyopenms.MSExperiment()
     pyopenms.FileHandler().loadExperiment(sys.argv[1], msdata)
-    percolator = pd.read_table(sys.argv[2])
+    # percolator = pd.read_table(sys.argv[2])
+    # read mzTab data, only need psm
+    mztab = MzTab(sys.argv[2])
+    cols = ['sequence','PSM_ID', 'accession', 'unique','modifications', 
+            'retention_time', 'charge', 'exp_mass_to_charge',
+             'calc_mass_to_charge', 'spectra_ref','search_engine_score[1]']
+    percolator = mztab.spectrum_match_table.loc[:,cols]
+    
+    # extract scan 
+    ### NOTE: if your scan is not the same format here, modify your code please
+    pat = re.compile("scan=([0-9]+)")
+    percolator['scan'] = percolator['spectra_ref'].apply(lambda x: ",".join(pat.findall(x))) # join multi scans if more than 1
+
     # need to reindex from 0-n after drop some rows
-    percolator = percolator[percolator['percolator q-value'] < 0.01].reset_index(drop=True)
+    # percolator = percolator[percolator['percolator q-value'] < 0.01].reset_index(drop=True)
     mgf = open(sys.argv[3], "w")
     ft = open(sys.argv[4], "w")
     sampleID = sys.argv[5]

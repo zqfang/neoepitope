@@ -13,7 +13,7 @@ WKDIR = config['WORKDIR']
 ##### INPUTS #####################
 MZML = sorted(glob.glob(os.path.join(WKDIR, "peaks/*.mzML.gz")))
 SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
-PERCOLATOR = ["percolator/{s}.percolator.target.peptides.txt"  for s in SAMPLES ]
+PERCOLATOR = ["commet_percolator/{s}_perc.mzTab"  for s in SAMPLES ]
 
 TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
 TEST_SAMPLES = [s for s in SAMPLES if s.startswith('test_')]
@@ -51,7 +51,7 @@ rule target:
 rule mzML2mgf:
     input: 
         mzml = "peaks/{sample}.mzML.gz",
-        perlco = "percolator/{sample}.percolator.target.peptides.txt",
+        perlco = "commet_percolator/{sample}_perc.mzTab",
     output:
         mgf = "mgf/{sample}.mgf",
         features = "mgf/{sample}.features.csv"

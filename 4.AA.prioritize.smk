@@ -14,7 +14,7 @@ WKDIR = config['WORKDIR']
 KNAPSACK =  config['KNAPSACK']
 SPECTRUM = "spectrums.mgf"
 LOCDICT = "spectrums.location.pytorch.pkl"
-PROTEOME = config["PROTEOME_PLUS_CONTAMINATION"]
+PROTEOME = config["dbsearch"]['prot_plus_contams']
 DENOVO_ONLY = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.denovo_only"
 ACCURACY_ALL_LABELED = "features.csv.mass_corrected.deepnovo_denovo.top95.I_to_L.consensus.minlen5.accuracy"
 ##### OUTPUTS ##########################
