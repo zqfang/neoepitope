@@ -38,34 +38,34 @@ Deep learning models (Pytorch) for cancer immunology
 ## Neoantigen discovery workflow
 
 
+### 0. Prepare input files
+
+```yaml
+SMKPATH: "/data/bases/fangzq/ImmunoRep/neoepitope"
+WORKDIR: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
+## mzML files in peaks folder:  MSV000082648/peaks/{sample}.mzML.gz
+
+dbsearch:
+  ## proteome database, fasta file 
+  prot_db: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome.fasta"
+  contaminant: "/data/bases/fangzq/ImmunoRep/data/UniProtContams_259_20170206.fasta"
+  # prot_db + contaminant in one file
+  prot_plus_contams: "/data/bases/fangzq/ImmunoRep/data/human.proteome.plus.contams.fasta"
+  # prot_db + contaminant + tumor mutation in one file
+  full_db: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome_259contams_viruses_26tumorShared.fasta"
+```
+
 ### 1. Database search from the very begining 
 1. comet + percolator:
 * MHCquant (recommended) 
-* on going pepeline: TODO
+* simplify pipeline of MHCquant
    ```shell
    snakemake -s 1.AA.db.search.smk --configfile config.yaml -p -j 12
    ```
 
-2. reformat the percolator output 
-  - TODO
-
-### 1.1 Start from the published data
-e.g. Tmuor HLA peptides (MSV000082648)
-1. download peaks and percolator data from `MSV000082648`
-```
-   - |- MSV000082648
-       |- peaks
-       |- percolator
-```
-
 2. run `2.AA.preprocess.smk` to generate train, test, valid data
-  - makesure these two paths are correct
+  - makesure `SMKPATH` is correct
 
-```yaml
-SMKPATH: "/data/bases/fangzq/ImmunoRep/neoepitope"
-WORK: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
-```
-run
 ```
 snakemake -s 2.AA.preprocess.smk --configfile config.yaml -j 32 -p 
 ```
@@ -88,7 +88,9 @@ snakemake -s 3.AA.train.search.smk --configfile config.yaml -p -j 8
 ```
 
 ### 3. Neoantigen selection
-perform second round db search (comet + percolator).
+perform second round db search (comet + percolator).  
+
+TODO: use step.1 pipeline to do second round db search
 
 ```shell
 snakemake -s 4.AA.prioritize.smk --configfile config.yaml -p -j 8
