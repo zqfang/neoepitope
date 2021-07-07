@@ -39,6 +39,7 @@ Deep learning models (Pytorch) for cancer immunology
 
 
 ### 0. Prepare input files
+Edit `config.yaml`
 
 ```yaml
 SMKPATH: "/data/bases/fangzq/ImmunoRep/neoepitope"
