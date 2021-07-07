@@ -394,50 +394,31 @@ rule quantify_identifications_targeted:
                   "-out {output} -threads {threads} ")
 
 
-
+############## NOTE ####################################
 # # # link extracted features
-# rule link_extracted_features:
-#     input:  "{sample}.featureXML",
-#     output: "{sample}_all_features_merged.consensusXML",
-#     threads: 1
-#     shell:
-#        "FeatureLinkerUnlabeledKD -in {input} -out {output} -threads {threads}"
+## need at least to maps, 
+## work only multi-input file for same sample
+rule link_extracted_features:
+    input:  "{sample}.featureXML",
+    output: "{sample}_all_features_merged.consensusXML",
+    threads: 1
+    shell:
+       "FeatureLinkerUnlabeledKD -in {input} -out {output} -threads {threads}"
 
 
 # # - resolve conflicting ids matching to the same feature
-# rule resolve_conflicts:
- 
-#     input:
-#      set val(Sample), file(consensus) from consensus_file
-
-#     output:
-#      set val(Sample), file("${Sample}_resolved.consensusXML") into (consensus_file_resolved, consensus_file_resolved_2)
-
-#     when:
-#      !params.skip_quantification
-
-#     shell:
-#      """
-#      IDConflictResolver -in ${consensus} \
-#                         -out ${Sample}_resolved.consensusXML \
-#                         -threads ${task.cpus}
-#      """
-
-# rule export_text:
-#     publishDir "${params.outdir}/"
- 
-#     input:
-#      set val(Sample), file(consensus_resolved) from consensus_file_resolved
-
-#     output:
-#      set val(Sample), file("${Sample}.csv") into consensus_text
-
-#     shell:
-#      """
-#      TextExporter -in ${consensus_resolved} \
-#                   -out ${Sample}.csv \
-#                   -threads ${task.cpus} \
-#                   -id:add_hit_metavalues 0 \
-#                   -id:add_metavalues 0 \
-#                   -id:peptides_only
-#      """
+rule resolve_conflicts:
+    input: "{sample}_all_features_merged.consensusXML"
+    output:  "{sample}_all_features_merged_resolved.consensusXML"
+    shell:   
+        "IDConflictResolver -in {input} -out {output} -threads {threads}"
+   
+rule export_text:
+    input: "{sample}_all_features_merged_resolved.consensusXML"
+    output: "{sample}.csv"
+    shell:
+        "TextExporter -in {input} -out {output} "
+        "-threads {threads} "
+        "-id:add_hit_metavalues 0 "
+        "-id:add_metavalues 0  "
+        "-id:peptides_only "
