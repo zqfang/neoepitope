@@ -150,9 +150,10 @@ rule DecoyDatabase:
 
 rule PeakPicker:
     """optional, if your input is high resolution data
+       Profile data ->  centroided MS spectra 
     """
-    input: "{sample}.mzML", 
-    output: temp("{sample}.picked.mzML"),
+    input: "peaks/{sample}.mzML.gz" 
+    output: "commet_percolator/{sample}.picked.mzML",
     params:
         pick_ms_levels="2"
     shell:
@@ -162,7 +163,7 @@ rule PeakPicker:
 
 rule decompress:
     input:  "peaks/{sample}.mzML.gz"
-    output: temp("commet_percolator/{sample}.mzML")
+    output: "commet_percolator/{sample}.mzML"
     shell:
         "zcat {input} > {output}"
 
@@ -178,8 +179,8 @@ rule CometAdaptor:
         #percolator_in = "{sample}.comet.pin.tsv",
     params: 
        enzyme = 'unspecific cleavage'
-    threads: 16
-    output:
+    threads: 6
+    log:  'log/comet_{sample}.log'
     shell:
         "CometAdapter -in {input.mzML} -database {input.fasta} "
         "-out {output.idXML} " # -pin_out {output.percolator_in}
@@ -199,6 +200,7 @@ rule CometAdaptor:
         "-variable_modifications 'Oxidation (M)' "
         "-digest_mass_range 800:2500 "
         "-spectrum_batch_size 500 "
+        "2>&1 | tee {log} "
 
 
 # IDPosteriorErrorProbability
@@ -256,20 +258,24 @@ rule filter_fdr_for_idalignment:
         pep_min = 8,
         pep_max = 12,
     threads: 1
+    log:  'log/fdr_filter1_{sample}.log'
     shell:
         "IDFilter -in {input} -out {output} "
         "-score:pep {params.fdr} -threads {threads} "
         "-delete_unreferenced_peptide_hits "
         "-precursor:length '{params.pep_min}:{params.pep_max}' "
         "-remove_decoys "
+        "2>&1 | tee {log} "
 
 # #  compute alignment rt transformation
 # # This tool provides an algorithm to align the retention time scales of multiple input files, correcting shifts and distortions between them
 # # Corrects retention time distortions between maps, using information from peptides identified in different maps
 rule align_idx_files:
     ## FIXME: select the same sample with multiple run ? or combined all samples ??
-    input: expand("commet_percolator/{sample}_fdr_filt.idXML", sample=SAMPLES),  
-    output: expand("commet_percolator/{sample}_fdr_filt.trafoXML", sample=SAMPLES),  ###
+    # input: expand("commet_percolator/{sample}_fdr_filt.idXML", sample=SAMPLES),  
+    # output: expand("commet_percolator/{sample}_fdr_filt.trafoXML", sample=SAMPLES),  ###
+    input: "commet_percolator/{sample}_fdr_filt.idXML",  
+    output: "commet_percolator/{sample}_fdr_filt.trafoXML", ###
     params:
         max_rt_alignment_shift=300,
     shell:
@@ -278,7 +284,7 @@ rule align_idx_files:
         "-model:type linear "
         "-algorithm:max_rt_shift {params.max_rt_alignment_shift} "
 
-# # 
+## 
 rule align_mzml_files: #using trafoXMLs
     input:
         mzml= "commet_percolator/{sample}.mzML",
@@ -323,9 +329,11 @@ rule merge_aligned_peptideindex_files:
 rule PSMFeatureExtractor:
     input:  "{sample}_all_ids_merged.idXML", 
     output: "commet_percolator/{sample}_all_ids_merged_psm.idXML"
-    threads: 12
+    threads: 1
+    log:  'log/psm_extractor_{sample}.log'
     shell:
-        "PSMFeatureExtractor -in {input} -out {output} -threads {threads}"
+        "PSMFeatureExtractor -in {input} -out {output} -threads {threads} "
+        "2>&1 | tee {log} "
 
 rule PercolatorAdapter:
     """
@@ -363,12 +371,14 @@ rule filter_peptides:
         pep_min = 8,
         pep_max = 12,
     threads: 1
+    log:  'log/peptide_filter_{sample}.log'
     shell:
         "IDFilter -in {input} -out {output} "
         "-score:pep {params.fdr} -threads {threads} "
         "-delete_unreferenced_peptide_hits "
         "-precursor:length '{params.pep_min}:{params.pep_max}' "
         "-remove_decoys "
+        "2>&1 | tee {log}"
 
 rule MzTabExporter:
     """Exports various XML formats to an mzTab file"""
