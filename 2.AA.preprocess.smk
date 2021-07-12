@@ -13,6 +13,7 @@ WKDIR = config['WORKDIR']
 ##### INPUTS #####################
 MZML = sorted(glob.glob(os.path.join(WKDIR, "peaks/*.mzML.gz")))
 SAMPLES = [os.path.basename(mz).replace(".mzML.gz", "") for mz in MZML]
+# SAMPLES = ["train_sample_10_ms_run_0"] # e.g. 
 PERCOLATOR = ["commet_percolator/{s}_perc.mzTab"  for s in SAMPLES ]
 
 TRAIN_SAMPLES = [s for s in SAMPLES if s.startswith('train_')]
@@ -141,7 +142,7 @@ rule feautres_merge_split:
     output: 
         features="features.csv",
         label="features.csv.labeled",
-        unlabel="feautures.csv.unlabeled",
+        # unlabel="features.csv.unlabeled",
     run:
         df = []
         for p in input:
@@ -149,9 +150,9 @@ rule feautres_merge_split:
         df = pd.concat(df)
         df.to_csv(output.features, index=False)
         # seq = '' => unlablel, else labeled
-        df_unlabel = df[df['seq'].isna()]
+        # df_unlabel = df[df['seq'].isna()]
         df_label = df[df['seq'].notnull()]
-        df_unlabel.to_csv(output.unlabel, index=False)
+        # df_unlabel.to_csv(output.unlabel, index=False)
         df_label.to_csv(output.label, index=False)
 
 # Run calculate_mass_shift_ppm() and correct_mass_shift_ppm()
@@ -186,7 +187,7 @@ rule split_feature_training_noshare:
     params:
         ratio = [0.90, 0.05, 0.05],
         path = SMKPATH,
-        outdir = "."
+        outdir = WKDIR
     shell:
         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
 
