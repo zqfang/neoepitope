@@ -21,7 +21,7 @@ def scan2seq(percolator: pd.DataFrame) -> dict:
     scan = percolator['scan'].str.split(",")
     scan2idx_dict = {}
     for i, row in percolator.iterrows():
-        scan = row['scan'].str.split(",")
+        scan = row['scan'].split(",")
         for s in scan:
             scan2idx_dict[s] = row['sequence']
     # for i, row in scan.iteritems():
