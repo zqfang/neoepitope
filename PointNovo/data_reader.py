@@ -23,27 +23,63 @@ def parse_raw_sequence(raw_sequence: str):
     index = 0
     while index < raw_sequence_len:
         if raw_sequence[index] == "(":
-            if peptide[-1] == "C" and raw_sequence[index:index + 8] == "(+57.02)":
-                peptide[-1] = "C(Carbamidomethylation)"
-                index += 8
-            elif peptide[-1] == 'M' and raw_sequence[index:index + 8] == "(+15.99)":
-                peptide[-1] = 'M(Oxidation)'
-                index += 8
-            elif peptide[-1] == 'N' and raw_sequence[index:index + 6] == "(+.98)":
-                peptide[-1] = 'N(Deamidation)'
-                index += 6
-            elif peptide[-1] == 'Q' and raw_sequence[index:index + 6] == "(+.98)":
-                peptide[-1] = 'Q(Deamidation)'
-                index += 6
-            elif peptide[-1] == 'S' and raw_sequence[index:index + 8] == "(+79.97)":
-                peptide[-1] = "S(Phosphorylation)"
-                index += 8
-            elif peptide[-1] == 'T' and raw_sequence[index:index + 8] == "(+79.97)":
-                peptide[-1] = "T(Phosphorylation)"
-                index += 8
-            elif peptide[-1] == 'Y' and raw_sequence[index:index + 8] == "(+79.97)":
-                peptide[-1] = "Y(Phosphorylation)"
-                index += 8
+            if peptide[-1] == "C":
+                # handle two cases
+                if raw_sequence[index:index + 8] == "(+57.02)":
+                    peptide[-1] = "C(Carbamidomethylation)"
+                    index += 8
+                elif raw_sequence[index:].startswith("(Carbamidomethylation)"):
+                    peptide[-1] = "C(Carbamidomethylation)"
+                    index += len("(Carbamidomethylation)")
+
+            elif peptide[-1] == 'M':
+                if raw_sequence[index:index + 8] == "(+15.99)":
+                    peptide[-1] = 'M(Oxidation)'
+                    index += 8
+                elif raw_sequence[index:].startswith("(Oxidation)"):
+                    peptide[-1] = 'M(Oxidation)'
+                    index += len("(Oxidation)")
+
+            elif peptide[-1] == 'N':
+                if raw_sequence[index:index + 6] == "(+.98)":
+                    peptide[-1] = 'N(Deamidation)'
+                    index += 6
+                elif raw_sequence[index:].startswith("(Deamidation)"):
+                    peptide[-1] = 'N(Deamidation)'
+                    index += len("(Deamidation)")
+
+            elif peptide[-1] == 'Q':
+                if raw_sequence[index:index + 6] == "(+.98)":
+                    peptide[-1] = 'Q(Deamidation)'
+                    index += 6
+                elif raw_sequence[index:].startswith("(Deamidation)"):
+                    peptide[-1] = 'Q(Deamidation)'
+                    index += len("(Deamidation)")
+
+            elif peptide[-1] == 'S':
+                if raw_sequence[index:index + 8] == "(+79.97)":
+                    peptide[-1] = "S(Phosphorylation)"
+                    index += 8
+                elif raw_sequence[index:].startswith("(Phosphorylation)"):
+                    peptide[-1] = "S(Phosphorylation)"
+                    index += len("(Phosphorylation)")
+
+            elif peptide[-1] == 'T':
+                if raw_sequence[index:index + 8] == "(+79.97)":
+                    peptide[-1] = "T(Phosphorylation)"
+                    index += 8
+                elif raw_sequence[index:].startswith("(Phosphorylation)"):
+                    peptide[-1] = "T(Phosphorylation)"
+                    index += len("(Phosphorylation)")
+
+            elif peptide[-1] == 'Y':
+                if raw_sequence[index:index + 8] == "(+79.97)":
+                    peptide[-1] = "Y(Phosphorylation)"
+                    index += 8
+                elif raw_sequence[index:].startswith("(Phosphorylation)"):
+                    peptide[-1] = "Y(Phosphorylation)"
+                    index += len("(Phosphorylation)")
+
             else:  # unknown modification
                 logger.warning(f"unknown modification in seq {raw_sequence}")
                 return False, peptide
@@ -56,6 +92,7 @@ def parse_raw_sequence(raw_sequence: str):
             logger.warning(f"unknown modification in seq {raw_sequence}")
             return False, peptide
     return True, peptide
+
 
 
 def to_tensor(data_dict: dict) -> dict:

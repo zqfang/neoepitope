@@ -20,10 +20,11 @@ class Feature:
 def scan2seq(percolator: pd.DataFrame) -> dict:
     scan = percolator['scan'].str.split(",")
     scan2idx_dict = {}
+    last2nd = percolator.columns[-2] # last column is scan, last second is sequence
     for i, row in percolator.iterrows():
         scan = row['scan'].split(",")
         for s in scan:
-            scan2idx_dict[s] = row['sequence']
+            scan2idx_dict[s] = row[last2nd] # row['sequence']
     # for i, row in scan.iteritems():
     #     for s in row:
     #         scan2idx_dict[s] = i
@@ -97,9 +98,10 @@ if __name__ == "__main__":
     # percolator = pd.read_table(sys.argv[2])
     # read mzTab data, only need psm
     mztab = MzTab(sys.argv[2])
+    last = mztab.spectrum_match_table.columns[-1]
     cols = ['sequence','PSM_ID', 'accession', 'unique','modifications', 
             'retention_time', 'charge', 'exp_mass_to_charge',
-             'calc_mass_to_charge', 'spectra_ref','search_engine_score[1]']
+             'calc_mass_to_charge', 'spectra_ref', last]
     percolator = mztab.spectrum_match_table.loc[:,cols]
     
     # extract scan 
