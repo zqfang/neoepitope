@@ -195,4 +195,3 @@ rule split_feature_training_noshare:
         outdir = WKDIR
     shell:
         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
-
