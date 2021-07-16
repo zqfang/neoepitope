@@ -268,7 +268,8 @@ rule filter_fdr_for_idalignment:
         "2>&1 | tee {log} "
 
 # #  compute alignment rt transformation
-# # This tool provides an algorithm to align the retention time scales of multiple input files, correcting shifts and distortions between them
+# # This tool provides an algorithm to align the retention time scales of multiple input files of same sample,
+# # correcting shifts and distortions between them
 # # Corrects retention time distortions between maps, using information from peptides identified in different maps
 rule align_idx_files:
     ## FIXME: select the same sample with multiple run ? or combined all samples ??

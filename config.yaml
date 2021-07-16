@@ -5,14 +5,24 @@ WORKDIR: "/data/bases/fangzq/ImmunoRep/data/MSV000082648"
 
 ## NOTE: For raw MS input file
 ## store {sample}.mzML.gz in the peaks folder. e.g peaks/{sample}.mzML.gz 
+MZML_DIR: "peaks"
 
-# knapsack file 
+## sample metadata file, with 4 columns
+METADATA:  "/data/bases/fangzq/ImmunoRep/data/MSV000082648/samples.tsv"
+## e.g.
+#### ID, SampleName, ReplicateFileName, ProfileOrCentorid, Condition
+####  0, sample_0, test_sample_0_ms_run_0.mzML.gz, centroid, Tumor
+####  1, sample_0, test_sample_0_ms_run_1.mzML.gz, centroid, Tumor
+####  2, sample_1, test_sample_1_ms_run_0.mzML.gz, profile,  Tumor
+####  3, sample_2, test_sample_2_ms_run_0.mzML.gz, centroid, Health
+
+# knapsack file, if missing, the programe will generate one for you
 KNAPSACK: "/data/bases/fangzq/ImmunoRep/neoepitope/ABRF_DDA/fix_C_var_NMQ_knapsack.npy"
 
 # path to neoepitope repo
 SMKPATH: "/home/fangzq/github/neoepitope"
 
-
+# database search files
 dbsearch:
   full_db: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome_259contams_viruses_26tumorShared.fasta"
   prot_db: "/data/bases/fangzq/ImmunoRep/data/PA_ucsc_proteome.fasta"
@@ -20,16 +30,15 @@ dbsearch:
   prot_plus_contams: "/data/bases/fangzq/ImmunoRep/data/human.proteome.plus.contams.fasta"
 
 
-data:
+# training, testing, denovo search
+pointnovo:
+  epoch: 20
+  learning_rate: 0.001
+  batch_size: 24
   train_valid_test_ratio: ""
   features: ""
   spectrum: ""
   spectrum_location_dict: ""
 
-train:
-  epoch: 20
-  learning_rate: 0.001
-  batch_size: 24
-
-
-prioritize: ""
+# neoantigen selection
+denovo_search: "" 

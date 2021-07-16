@@ -305,7 +305,7 @@ print("num_units ", num_units)
 
 dropout_rate = 0.25
 
-batch_size = 16
+batch_size = 32
 num_workers = 6
 print("batch_size ", batch_size)
 
@@ -313,7 +313,7 @@ num_epoch = 20
 
 init_lr = 1e-3
 
-steps_per_validation = 300  # 100 # 2 # 4 # 200
+steps_per_validation = 1000  # 100 # 2 # 4 # 200
 print("steps_per_validation ", steps_per_validation)
 
 max_gradient_norm = 5.0

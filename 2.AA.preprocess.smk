@@ -46,12 +46,17 @@ rule target:
 # ================================================================================
 # Step 2.1: Prepare the training data.
 # ================================================================================
-
+rule decompress:
+    input:  "peaks/{sample}.mzML.gz"
+    output: "commet_percolator/{sample}.mzML"
+    shell:
+        "zcat {input} > {output}"
+        
 # Run merge_mgf_file() and merge_feature_file()
 # We will get two output files in the same folder: "spectrum.mgf" and "feature.csv".
 rule mzML2mgf:
     input: 
-        mzml = "peaks/{sample}.mzML.gz",
+        mzml = "commet_percolator/{sample}.mzML",
         perlco = "commet_percolator/{sample}_perc.mzTab",
     output:
         mgf = "mgf/{sample}.mgf",
