@@ -17,6 +17,7 @@ Deep learning models (Pytorch) for cancer immunology
 
 ## Dependency
 1. proteomics
+   - crux-toolkit
    - openms
    - pyopenms
    - biopython
