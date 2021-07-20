@@ -59,7 +59,15 @@ dbsearch:
 ### 1. Database search from the very begining 
 1. comet + percolator:
 * MHCquant (recommended) 
-* simplify pipeline of MHCquant
+  - however, if there is only a single replicate for each mzML, I'm afraid you won't be able to use mhcquant.
+* crux-toolkit
+  - see there: http://crux.ms/
+
+   ```shell
+   snakemake -s 1.AA.crux.smk --configfile config.yaml -p -j 12
+   ```
+
+* simplify pipeline of MHCquant (OpenMS)
    ```shell
    snakemake -s 1.AA.db.search.smk --configfile config.yaml -p -j 12
    ```

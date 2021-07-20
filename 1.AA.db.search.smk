@@ -189,7 +189,7 @@ rule CometAdaptor:
         "-precursor_mass_tolerance 5 "
         "-precursor_error_units ppm "
         #"-fragment_bin_tolerance 0.02 "
-        "-fragment_mass_tolerance 0.02 "
+        # "-fragment_mass_tolerance 0.02 "
         "-fragment_bin_offset 0 "
         "-num_hits 1 "
         "-max_variable_mods_in_peptide 3 "
@@ -239,17 +239,24 @@ rule PeptideIndexer:
         "2>&1 | tee {log} "
 
 rule FalseDiscoveryRate:
+    """
+    FDR column - the q-value is annotated in the "best_search_engine_score[1]" column of the mzTab file.
+    """
     input:  "{sample}_pi.idXML"
     output: temp("{sample}_fdr.idXML")
+    params:
+        fdr = 1, # fdr threshold
     threads: 1
     log:  'log/fdr_{sample}.log'
     shell:
         "FalseDiscoveryRate -in {input} -out {output} "
         "-protein 'false' " # this argument is important
+        "-FDR:PSM {params.fdr} "
         "-threads {threads} 2>&1 | tee {log} "
         
         
 # filter 
+## https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/nightly/html/TOPP_IDFilter.html
 rule filter_fdr_for_idalignment:
     input: "{sample}_fdr.idXML"
     output: "commet_percolator/{sample}_fdr_filt.idXML"
@@ -261,14 +268,15 @@ rule filter_fdr_for_idalignment:
     log:  'log/fdr_filter1_{sample}.log'
     shell:
         "IDFilter -in {input} -out {output} "
-        "-score:pep {params.fdr} -threads {threads} "
+        "-score:pep {params.fdr} " # need to read carefully whay socre:pep represents !!!
+        "-threads {threads} "
         "-delete_unreferenced_peptide_hits "
         "-precursor:length '{params.pep_min}:{params.pep_max}' "
         "-remove_decoys "
         "2>&1 | tee {log} "
 
 # #  compute alignment rt transformation
-# # This tool provides an algorithm to align the retention time scales of multiple input files of same sample,
+# # The MapAlignerIdentification provides, MapRTTransformer an algorithm to align the retention time scales of multiple input files of same sample (replicates !!!),
 # # correcting shifts and distortions between them
 # # Corrects retention time distortions between maps, using information from peptides identified in different maps
 rule align_idx_files:

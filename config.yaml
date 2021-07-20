@@ -34,7 +34,7 @@ dbsearch:
 pointnovo:
   epoch: 20
   learning_rate: 0.001
-  batch_size: 24
+  batch_size: 36
   train_valid_test_ratio: ""
   features: ""
   spectrum: ""
