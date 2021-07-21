@@ -59,30 +59,29 @@ dbsearch:
 
 ### 1. Database search from the very begining 
 1. comet + percolator:
-* MHCquant (recommended) 
-  - however, if there is only a single replicate for each mzML, I'm afraid you won't be able to use mhcquant.
-* crux-toolkit
+* crux-toolkit 
   - see there: http://crux.ms/
 
    ```shell
    snakemake -s 1.AA.crux.smk --configfile config.yaml -p -j 12
    ```
+* MHCquant  
+  - however, if there is only a single replicate for each mzML, I'm afraid you won't be able to use MHCquant.
 
 * simplify pipeline of MHCquant (OpenMS)
    ```shell
-   snakemake -s 1.AA.db.search.smk --configfile config.yaml -p -j 12
+   snakemake -s 1.AA.openms.smk --configfile config.yaml -p -j 12
    ```
 
 2. run `2.AA.preprocess.smk` to generate train, test, valid data
   - makesure `SMKPATH` is correct
-
-```
-snakemake -s 2.AA.preprocess.smk --configfile config.yaml -j 32 -p 
-```
+   ```
+   snakemake -s 2.AA.preprocess.smk --configfile config.yaml -j 32 -p 
+   ```
 
 ### 2. Train and predict
 
-1. complie cython files
+1. complie cython extension
 ```shell
 cd PointNovo
 # build cython extension
