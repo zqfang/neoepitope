@@ -10,8 +10,8 @@ SMKPATH = config['SMKPATH']
 
 ######## INPUTS ##########
 MZML = sorted(glob.glob(os.path.join(config['WORKDIR'], "peaks/*.mzML.gz")))
-# SAMPLES = [mz.split("/")[-1].replace(".mzML.gz", "") for mz in MZML]
-SAMPLES = ["test_sample_0_ms_run_2"] 
+SAMPLES = [mz.split("/")[-1].replace(".mzML.gz", "") for mz in MZML]
+#SAMPLES = ["test_sample_0_ms_run_2"] 
 
 PROT_DB = config['dbsearch']['prot_db']
 FULL_DB = config['dbsearch']['full_db']
@@ -50,29 +50,30 @@ rule target:
 #         "--overwrite true "
 #         "{input} {params.index}"
 
-rule DecoyDatabase:
-    """
-    generate target decopy database using DecoyDatabase (OpenMS) 
-    """
-    input: 
-        proteome = FULL_DB,
-        contams = CONTAMINANT,
-    output: 
-        TARGET_DECOY
-    params:
-        enzyme = 'no cleavage', #'unspecific cleavage' is not working,
-        decoy_string = "decoy_",
-        decoy_string_position = "prefix",
-        contams = "" if os.path.exists(FULL_DB) else CONTAMINANT
-    threads: 1
-    shell:
-        "DecoyDatabase -in {input.proteome} {params.contams} "
-        "-out {output} -threads {threads} "
-        "-decoy_string {params.decoy_string} "
-        "-decoy_string_position {params.decoy_string_position} "
-        "-type protein "
-        "-method shuffle "
-        "-enzyme '{params.enzyme}' " # <- cause too much time and memory if unspecific cleavage
+# rule DecoyDatabase:
+#     """
+#     generate target decopy database using DecoyDatabase (OpenMS) 
+#     """
+#     input: 
+#         proteome = FULL_DB,
+#         contams = CONTAMINANT,
+#     output: 
+#         TARGET_DECOY
+#     params:
+#         # cause too much time and memory if choose `unspecific cleavage`
+#         enzyme = 'typsin',
+#         decoy_string = "decoy_",
+#         decoy_string_position = "prefix",
+#         contams = "" if os.path.exists(FULL_DB) else CONTAMINANT
+#     threads: 1
+#     shell:
+#         "DecoyDatabase -in {input.proteome} {params.contams} "
+#         "-out {output} -threads {threads} "
+#         "-decoy_string {params.decoy_string} "
+#         "-decoy_string_position {params.decoy_string_position} "
+#         "-type protein "
+#         "-method shuffle " # important for MHC peptide decoys
+#         #"-enzyme '{params.enzyme}' "
 
 # rule Profile2Peak:
 #     """optional, if your input is Profile-mode data
@@ -107,7 +108,7 @@ rule Crux:
     """
     input:
         mzml = "temp/{sample}.mzML",
-        fasta = TARGET_DECOY,
+        fasta = FULL_DB, #TARGET_DECOY,
     output: 
         tsv = "crux/{sample}/percolator.target.peptides.txt",
         # the fragmentation spectra for which accurate masses were successfully inferred.
@@ -134,6 +135,7 @@ rule Crux:
         "--decoy_search 1 --overwrite true "
         "--spectrum-format mgf "
         "--output-dir crux/{wildcards.sample}  "
+        "--exact-p-value true"
         # "--digest_mass_range '800.0 2500.0' " # for 8-12 MHC I peptide
         # "--fragment-tolerance 0.02 "
         ## high resolution setting for comet, if low res, use default value: 1.0005079
