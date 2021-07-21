@@ -105,7 +105,7 @@ workdir: config['WORKDIR']
 SMKPATH = config['SMKPATH']
 
 ######## INPUTS ##########
-MZML = glob.glob(os.path.join(config['WORKDIR'], "peaks/*.mzML.gz"))
+MZML = sorted(glob.glob(os.path.join(config['WORKDIR'], "peaks/*.mzML.gz")))
 SAMPLES = [mz.split("/")[-1].replace(".mzML.gz", "") for mz in MZML]
 #SAMPLES = ["train_sample_0_ms_run_0"] 
 
@@ -115,7 +115,12 @@ FULL_DB = config['dbsearch']['full_db']
 CONTAMINANT = config['dbsearch']['contaminant']  # download containinants from MSV000084172
 TARGET_DECOY = "commet_percolator/target.decoy.fasta"
 PERCOLATOR = expand("commet_percolator/{sample}_perc.mzTab", sample=SAMPLES)
+FEATURES = expand("mgf/{sample}.features.csv", sample=SAMPLES)
 
+# SAMPLE indexes
+with open(os.path.join(WKDIR,"sample_indexes.txt"), 'w') as out:
+    for i, s in enumerate(SAMPLES):
+        out.write(f"{s}\tF{i}\n")
 ####### OpenMS MHC workflow #########################################################
 ## for Percolator: Search Engine (comet/MSGFPlus..) -> PeptideIndexer > FalseDiscoveryRate 
 ##                   -> PSMFeatureExtractor -> PercolatorAdapter -> IDFilter.
@@ -123,7 +128,7 @@ PERCOLATOR = expand("commet_percolator/{sample}_perc.mzTab", sample=SAMPLES)
 
 
 rule target:
-    input: PERCOLATOR
+    input: PERCOLATOR, FEATURES
 
 rule DecoyDatabase:
     """
@@ -136,9 +141,10 @@ rule DecoyDatabase:
         TARGET_DECOY
     params:
         enzyme = 'no cleavage', #'unspecific cleavage' is not working,
-        decoy_string = "DECOY_",
+        decoy_string = "decoy_",
         decoy_string_position = "prefix",
-        contams = "" if os.path.exists(FULL_DB) else CONTAMINANT
+        #contams = "" if os.path.exists(FULL_DB) else CONTAMINANT
+        contams = CONTAMINANT
     threads: 6
     shell:
         "DecoyDatabase -in {input.proteome} {params.contams} "
@@ -223,7 +229,7 @@ rule PeptideIndexer:
     output: 
         temp("{sample}_pi.idXML")
     params:
-        decoy_string = "DECOY_",
+        decoy_string = "decoy_",
         decoy_position = "prefix", 
     log:  'log/pi_{sample}.log'
     threads: 1
@@ -352,7 +358,7 @@ rule PercolatorAdapter:
     output: "commet_percolator/{sample}_all_ids_merged_psm_perc.idXML",
     params:
         enzyme = 'no_enzyme',
-        decoy_prefix = "DECOY_",
+        decoy_prefix = "decoy_",
         description_correct_features = 0,
         subet_max_train = 0,
         extra = "-klammer " # or false
@@ -449,3 +455,28 @@ rule export_text:
         "-id:add_hit_metavalues 0 "
         "-id:add_metavalues 0  "
         "-id:peptides_only "
+
+
+
+# rule decompress:
+#     input:  "peaks/{sample}.mzML.gz"
+#     output: "commet_percolator/{sample}.mzML"
+#     shell:
+#         "zcat {input} > {output}"
+        
+# Run merge_mgf_file() and merge_feature_file()
+# We will get two output files in the same folder: "spectrum.mgf" and "feature.csv".
+rule mzML2mgf:
+    input: 
+        mzml = "commet_percolator/{sample}.mzML",
+        perlco = "commet_percolator/{sample}_perc.mzTab",
+    output:
+        mgf = "mgf/{sample}.mgf",
+        features = "mgf/{sample}.features.csv"
+    params:
+        path = SMKPATH,
+        sample_idx = lambda wildcards: SAMPLES.index(wildcards.sample), 
+    shell:
+        ## better to use hash, not jobid
+        "python {params.path}/rules/mzml2mgf.py "
+        "{input.mzml} {input.perlco} {output.mgf} {output.features} {params.sample_idx} " # {jobid}
