@@ -10,8 +10,8 @@ SMKPATH = config['SMKPATH']
 
 ######## INPUTS ##########
 MZML = sorted(glob.glob(os.path.join(config['WORKDIR'], "peaks/*.mzML.gz")))
-#SAMPLES = [mz.split("/")[-1].replace(".mzML.gz", "") for mz in MZML]
-SAMPLES = ["train_sample_68_ms_run_0"] 
+# SAMPLES = [mz.split("/")[-1].replace(".mzML.gz", "") for mz in MZML]
+SAMPLES = ["test_sample_0_ms_run_2"] 
 
 PROT_DB = config['dbsearch']['prot_db']
 FULL_DB = config['dbsearch']['full_db']
@@ -71,14 +71,13 @@ rule DecoyDatabase:
         "-decoy_string {params.decoy_string} "
         "-decoy_string_position {params.decoy_string_position} "
         "-type protein "
-        "-method shuffle"
+        "-method shuffle "
         "-enzyme '{params.enzyme}' " # <- cause too much time and memory if unspecific cleavage
 
-
-# 
-# rule PeakPicker:
+# rule Profile2Peak:
 #     """optional, if your input is Profile-mode data
 #        then run this ->  centroided-mode MS spectra 
+#        DecoyDatabase (OpenMS) 
 #     """
 #     input: "peaks/{sample}.mzML.gz" 
 #     output: "commet_percolator/{sample}.picked.mzML",
@@ -120,7 +119,7 @@ rule Crux:
         enzyme = 'no_enzyme', # immunopeptidomes
         decoy_prefix = "decoy_",
         bin = "/home/fangzq/program/crux-4.0.Linux.x86_64/bin"
-    threads: 6
+    threads: 12
     log:  'log/crux_{sample}.log'
     shell:
         ## crux version must be >= 4.0
@@ -130,11 +129,11 @@ rule Crux:
         "--post-processor percolator "
         "--protein-enzyme {params.enzyme} "
         "--num-threads {threads} "
-        "--allowed_missed_cleavage 0 "
+        #"--allowed_missed_cleavage 0 "
         "--decoy-prefix {params.decoy_prefix} "
         "--decoy_search 1 --overwrite true "
         "--spectrum-format mgf "
-        "--output-dir {wildcards.sample}  "
+        "--output-dir crux/{wildcards.sample}  "
         # "--digest_mass_range '800.0 2500.0' " # for 8-12 MHC I peptide
         # "--fragment-tolerance 0.02 "
         ## high resolution setting for comet, if low res, use default value: 1.0005079
