@@ -30,10 +30,10 @@ LOCDICT = "spectrums.location.pytorch.pkl"
 DATASETS = expand("features/{sample}.features.csv.{dat}.nodup", sample=TRAIN_SAMPLES, dat=['train','test', 'valid','denovo']) 
 FEATURES = expand("features.csv.labeled.mass_corrected.{dat}.nodup", dat=['train','test', 'valid','denovo'])
 
-# SAMPLE indexes
-with open(os.path.join(WKDIR,"sample_indexes.txt"), 'w') as out:
-    for i, s in enumerate(SAMPLES):
-        out.write(f"{s}\tF{i}\n")
+# # SAMPLE indexes
+# with open(os.path.join(WKDIR,"sample_indexes.txt"), 'w') as out:
+#     for i, s in enumerate(SAMPLES):
+#         out.write(f"{s}\tF{i}\n")
 # ================================================================================
 # Step 2: Preprocess
 # ================================================================================
@@ -46,68 +46,28 @@ rule target:
 # ================================================================================
 # Step 2.1: Prepare the training data.
 # ================================================================================
-rule decompress:
-    input:  "peaks/{sample}.mzML.gz"
-    output: "commet_percolator/{sample}.mzML"
-    shell:
-        "zcat {input} > {output}"
-        
-# Run merge_mgf_file() and merge_feature_file()
-# We will get two output files in the same folder: "spectrum.mgf" and "feature.csv".
-rule mzML2mgf:
-    input: 
-        mzml = "commet_percolator/{sample}.mzML",
-        perlco = "commet_percolator/{sample}_perc.mzTab",
-    output:
-        mgf = "mgf/{sample}.mgf",
-        features = "mgf/{sample}.features.csv"
-    params:
-        path = SMKPATH,
-        sample_idx = lambda wildcards: SAMPLES.index(wildcards.sample), 
-    shell:
-        ## better to use hash, not jobid
-        "python {params.path}/rules/mzml2mgf.py "
-        "{input.mzml} {input.perlco} {output.mgf} {output.features} {params.sample_idx} " # {jobid}
-
-
-# rule mgf2location:
-#     """
-#     This step is really slow, and it will be very slow when train or test.
-#     """
-#     input: 
-#         mgf = "mgf/{sample}.mgf",
-#     output:
-#         loc = "mgf/{sample}.mgf.location.pytorch.pkl"
-#     run:
-#         spectrum_location_dict = {}
-#         line = True
-#         with open(input.mgf, 'r') as f:
-#             while line:
-#                 # The tell() method returns the current file position in a file stream.
-#                 current_location = f.tell() 
-#                 line = f.readline()
-#                 if "BEGIN IONS" in line:
-#                     spectrum_location = current_location
-#                 elif "SCANS=" in line:
-#                     scan = re.split('[=\r\n]', line)[1]
-#                     spectrum_location_dict[scan] = spectrum_location
-
-#         joblib.dump(spectrum_location_dict, output.loc)
-
-
-# rule train_val_test:
-#     input:   "mgf/{sample}.features.csv"
-#     output:
-#         train =  "features/{sample}.features.csv.train.nodup",
-#         valid =  "features/{sample}.features.csv.valid.nodup",
-#         test =  "features/{sample}.features.csv.test.nodup",
-#         denovo = "features/{sample}.features.csv.denovo.nodup",
-#     params:
-#         ratio = [0.8, 0.1, 0.1],
-#         path = SMKPATH,
-#         outdir = "features"
+# rule decompress:
+#     input:  "peaks/{sample}.mzML.gz"
+#     output: "commet_percolator/{sample}.mzML"
 #     shell:
-#         "python {params.path}/rules/train_val_test.py {input} {params.outdir}"
+#         "zcat {input} > {output}"
+        
+# # Run merge_mgf_file() and merge_feature_file()
+# # We will get two output files in the same folder: "spectrum.mgf" and "feature.csv".
+# rule mzML2mgf:
+#     input: 
+#         mzml = "commet_percolator/{sample}.mzML",
+#         perlco = "commet_percolator/{sample}_perc.mzTab",
+#     output:
+#         mgf = "mgf/{sample}.mgf",
+#         features = "mgf/{sample}.features.csv"
+#     params:
+#         path = SMKPATH,
+#         sample_idx = lambda wildcards: SAMPLES.index(wildcards.sample), 
+#     shell:
+#         ## better to use hash, not jobid
+#         "python {params.path}/rules/mzml2mgf.py "
+#         "{input.mzml} {input.perlco} {output.mgf} {output.features} {params.sample_idx} " # {jobid}
 
 
 rule spectrum_merge:

@@ -52,7 +52,7 @@ def assign(df: pd.DataFrame, ratio: List[float] = [0.8, 0.1, 0.1]):
 
     return output_train, output_val, output_test
 
-def main(feature_csv, outdir, ratio = [0.8,0.1,0.1], random_state=42):
+def main(feature_csv, outdir, ratio = [0.87,0.03,0.1], random_state=42):
     
     filename = os.path.basename(feature_csv)
     df = pd.read_csv(feature_csv)
