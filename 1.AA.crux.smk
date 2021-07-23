@@ -50,31 +50,6 @@ rule target:
 #         "--overwrite true "
 #         "{input} {params.index}"
 
-# rule DecoyDatabase:
-#     """
-#     generate target decopy database using DecoyDatabase (OpenMS) 
-#     """
-#     input: 
-#         proteome = FULL_DB,
-#         contams = CONTAMINANT,
-#     output: 
-#         TARGET_DECOY
-#     params:
-#         # cause too much time and memory if choose `unspecific cleavage`
-#         enzyme = 'typsin',
-#         decoy_string = "decoy_",
-#         decoy_string_position = "prefix",
-#         contams = "" if os.path.exists(FULL_DB) else CONTAMINANT
-#     threads: 1
-#     shell:
-#         "DecoyDatabase -in {input.proteome} {params.contams} "
-#         "-out {output} -threads {threads} "
-#         "-decoy_string {params.decoy_string} "
-#         "-decoy_string_position {params.decoy_string_position} "
-#         "-type protein "
-#         "-method shuffle " # important for MHC peptide decoys
-#         #"-enzyme '{params.enzyme}' "
-
 # rule Profile2Peak:
 #     """optional, if your input is Profile-mode data
 #        then run this ->  centroided-mode MS spectra 
@@ -117,7 +92,7 @@ rule Crux:
         # the fragmentation spectra for which accurate masses were not inferred.
         no_hits = "crux/{sample}/bullseye.{sample}.mzML.nopid.mgf" 
     params:
-        enzyme = 'no_enzyme', # immunopeptidomes
+        enzyme = 'no_enzyme', # immunopeptidomes, but it's for protein-level FDR
         decoy_prefix = "decoy_",
         bin = "/home/fangzq/program/crux-4.0.Linux.x86_64/bin"
     threads: 12
@@ -135,7 +110,7 @@ rule Crux:
         "--decoy_search 1 --overwrite true "
         "--spectrum-format mgf "
         "--output-dir crux/{wildcards.sample}  "
-        "--exact-p-value true"
+        "--exact-p-value true "
         # "--digest_mass_range '800.0 2500.0' " # for 8-12 MHC I peptide
         # "--fragment-tolerance 0.02 "
         ## high resolution setting for comet, if low res, use default value: 1.0005079

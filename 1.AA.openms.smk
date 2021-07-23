@@ -145,12 +145,13 @@ rule DecoyDatabase:
         decoy_string_position = "prefix",
         #contams = "" if os.path.exists(FULL_DB) else CONTAMINANT
         contams = CONTAMINANT
-    threads: 6
+    threads: 1
     shell:
         "DecoyDatabase -in {input.proteome} {params.contams} "
         "-out {output} -threads {threads} "
         "-decoy_string {params.decoy_string} "
         "-decoy_string_position {params.decoy_string_position} "
+        "-method reverse -type protein "
             #"-enzyme '{params.enzyme}' " # <- won't work
 
 
@@ -357,7 +358,9 @@ rule PercolatorAdapter:
     input: "commet_percolator/{sample}_all_ids_merged_psm.idXML",
     output: "commet_percolator/{sample}_all_ids_merged_psm_perc.idXML",
     params:
-        enzyme = 'no_enzyme',
+        # Type of enzyme used for in silico
+        # protein digestion for picked protein-level FDR estimation.
+        enzyme = 'no_enzyme', 
         decoy_prefix = "decoy_",
         description_correct_features = 0,
         subet_max_train = 0,
@@ -371,7 +374,7 @@ rule PercolatorAdapter:
         "-decoy_pattern {params.decoy_prefix} "
         "-enzyme {params.enzyme} -threads {threads} "
         "-subset_max_train {params.subet_max_train} "
-        "-peptide_level_fdrs "
+        "-peptide_level_fdrs " # this is important for peptide FDR
         "-doc {params.description_correct_features} "
         "-seed 4711 "
         "2>&1 | tee {log}"
