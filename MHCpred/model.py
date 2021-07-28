@@ -58,7 +58,7 @@ class MHCBase(nn.Module):
 # model 1    
 class MHCModel(nn.Module):
     def __init__(self, input_size, output_size = 1):
-        super(MLP,self).__init__()
+        super(MHCModel,self).__init__()
         # number of hidden nodes in each layer (512)
         self.hidden_size = 512
         self.ag = MHCBase(input_size, self.hidden_size, n_layers=1)
