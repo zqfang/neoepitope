@@ -18,3 +18,4 @@ ABRF_DDA/*
 *.snakemake
 *.pth
 bin
+*checkpoints
