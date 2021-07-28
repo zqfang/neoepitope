@@ -12,9 +12,11 @@ import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from .datasets import MHCDataset, DataBundle
-from .model import MHCModel
-import config
+from datasets import MHCDataset, DataBundle
+from model import MHCModel
+import joblib
+from config import *
+
 
 os.makedirs("checkpoints", exist_ok=True)
 logger = SummaryWriter(log_dir = "checkpoints")
@@ -25,16 +27,18 @@ data = DataBundle(alleles= mhc_allel_filename,
                   mhc_psudo= pesudo_filename, 
                   ba_el_dir= peptide_ba_el_dir )
 
+# preprocess data
 data.parse_ba()
 data.parse_el()
 data.concat()
-train, val, test = data.train_val_test_split(seed=1234)
-
-train_data = MHCDataset(data, train)
-valid_data = MHCDataset(data, val)
+data.train_val_test_split(seed=1234)
+# joblib.dump("/data/bases/fangzq/ImmunoRep/databundle.pkl",filename = data)
+# data = joblib.load("/data/bases/fangzq/ImmunoRep/databundle.pkl")
+train_data = MHCDataset(data, data.train)
+valid_data = MHCDataset(data, data.val)
 # test_data = MHCDataset(data, test)
 
-print("Prepare DataLoader ")
+print("Prepare DataLoader")
 train_loader = DataLoader(train_data, batch_size=batch_size, num_workers= num_workers) #sampler=train_sampler, num_workers=1 )# sampler=SubsetRandomSampler() )
 valid_loader =  DataLoader(valid_data, batch_size=batch_size, num_workers= num_workers)
 

@@ -69,7 +69,7 @@ class MHCModel(nn.Module):
                                        torch.nn.BatchNorm1d(2 * self.hidden_size),
                                        torch.nn.ReLU(),
                                        torch.nn.Dropout(0.2),
-                                       torch.nn.Linear(2 * self.hidden_size, output_size)))
+                                       torch.nn.Linear(2 * self.hidden_size, output_size))
         
     def forward(self, mhc, antigen):
         # add hidden layer, with relu activation function
@@ -77,6 +77,6 @@ class MHCModel(nn.Module):
         ag = self.ag(antigen)
         x = torch.cat([ag, mhc], dim=1)
         x = self.ffn(x)
-        return x
+        return x.view(-1)
 
 # model 

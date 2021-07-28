@@ -78,10 +78,10 @@ class DataBundle:
             self.pseudo2el[seq] = [el, h_avg] #, h_final, c_final] 
     
     def concat(self):
-        self.ba_affi = pd.concat([v[0] for k, v[0] in self.pseudo2ba.items()], ignore_index=True)
-        self.ba_embed = np.stack([v[1] for k, v[0] in self.pseudo2ba.items()])
-        self.el_affi = pd.concat([v[0] for k, v[0] in self.pseudo2el.items()], ignore_index=True)
-        self.el_embed = np.stack([v[1] for k, v[0] in self.pseudo2el.items()])
+        self.ba_affi = pd.concat([v[0] for k, v in self.pseudo2ba.items()], ignore_index=True)
+        self.ba_embed = np.vstack([v[1] for k, v in self.pseudo2ba.items()])
+        self.el_affi = pd.concat([v[0] for k, v in self.pseudo2el.items()], ignore_index=True)
+        self.el_embed = np.vstack([v[1] for k, v in self.pseudo2el.items()])
 
     def train_val_test_split(self, ratio = [0.8, 0.1, 0.1], seed=1234):
         rs = np.random.RandomState(seed=seed)
@@ -95,10 +95,10 @@ class DataBundle:
         self.test = test
         return train, val, test
 
-    def get_ba_data(idx):
+    def get_ba_data(self, idx):
         return self.ba_affi.iloc[idx], self.ba_embed[idx]
         
-    def get_el_data(idx):
+    def get_el_data(self, idx):
         return self.el_affi.iloc[idx], self.el_embed[idx]
       
 
@@ -109,10 +109,10 @@ class MHCDataset(Dataset):
         partition:  indices of train, val, test.
         """
         # ag: antigen
-        ba_embed, ba_affi = data.get_ba_data(partition)
+        ba_affi, ba_embed = data.get_ba_data(partition)
         self.ag_embed = torch.from_numpy(ba_embed.astype(np.float32))
         self.affinity = torch.from_numpy(ba_affi['affinity'].values.astype(np.float32))
-        self.mhc_embed = np.stack([data.pseudo_embed[idx] for idx in ba_affi['pseudo_idx'].to_list()])
+        self.mhc_embed = np.vstack([data.pseudo_embed[idx] for idx in ba_affi['pseudo_idx'].to_list()])
         self.mhc_embed = torch.from_numpy(self.mhc_embed.astype(np.float32))
 
     def __getitem__(self, idx):
