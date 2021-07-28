@@ -105,11 +105,23 @@ TODO: use step.1 pipeline to do second round db search
 snakemake -s 4.AA.prioritize.smk --configfile config.yaml -p -j 8
 ```
 
-## Tumor classificatiton
-
-TODO
 
 ## Binding affinity
+
+using Unirep50 + CNN model.
+
+train
+```shell
+python MHCpred/train.py
+```
+
+predit
+```shell
+python MHCpred/eval.py
+```
+
+
+## Tumor classificatiton
 
 TODO
 
