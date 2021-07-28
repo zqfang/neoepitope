@@ -10,8 +10,10 @@ wget http://www.cbs.dtu.dk/services/NetMHCpan/data.tar.gz
 wget http://www.cbs.dtu.dk/services/NetMHCpan/test.tar.gz
 ```
 
-## get uniRep embeding
+## get UniRep embedding
+What's [UniRep](https://www.nature.com/articles/s41592-019-0598-1)
 ```
+pip install jax-unirep
 snakemake -s get_embeds.smk -j 32
 ```
 
