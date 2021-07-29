@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import glob,sys,os,json
 from datetime import datetime
-
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -59,7 +59,7 @@ last_loss = 1000
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
-    for i, embeds  in enumerate(train_loader):
+    for embeds in tqdm(train_loader, total=len(train_loader)):
         inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
         inp_mhc = inp_mhc.to(device)
         inp_ag = inp_ag.to(device)
@@ -89,7 +89,7 @@ for epoch in range(num_epochs):
     model.eval()
     with torch.no_grad():
         valid_loss = 0
-        for i, embeds  in enumerate(valid_loader):
+        for embeds in tqdm(valid_loader, total=len(valid_loader)):
             inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
             inp_mhc = inp_mhc.to(device)
             inp_ag = inp_ag.to(device)
@@ -104,7 +104,7 @@ for epoch in range(num_epochs):
 model.eval()
 with torch.no_grad():
     test_loss = 0
-    for i, embeds  in enumerate(valid_loader):
+    for embeds in tqdm(test_loader, total=len(test_loader)):
         inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
         inp_mhc = inp_mhc.to(device)
         inp_ag = inp_ag.to(device)
