@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import glob,sys,os,json
 from datetime import datetime
 from tqdm import tqdm
@@ -15,11 +14,11 @@ from torch.utils.tensorboard import SummaryWriter
 from datasets import MHCDataset, DataBundle
 from model import MHCModel
 import joblib
-from config import *
+import config
 
-
+LOG_DIR = config.args.log_dir
 os.makedirs("checkpoints", exist_ok=True)
-logger = SummaryWriter(log_dir = "checkpoints")
+logger = SummaryWriter(log_dir = LOG_DIR)
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -27,38 +26,41 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 #                   mhc_psudo= pesudo_filename, 
 #                   ba_el_dir= peptide_ba_el_dir )
 print("Build Model")
-model = MHCModel(input_size, 1)
-model.to(device)
+model = MHCModel(config.input_size, 1)
 # # preprocess data
 # data.parse_ba()
 # data.parse_el()
 # data.concat()
 # data.train_val_test_split(seed=1234)
 # joblib.dump("/data/bases/fangzq/ImmunoRep/databundle.pkl",filename = data)
-data = joblib.load(DATA_BUNDLE)
+data = joblib.load(config.DATA_BUNDLE)
 train_data = MHCDataset(data, data.train)
 valid_data = MHCDataset(data, data.val)
 test_data = MHCDataset(data, data.test)
 
 print("Prepare DataLoader")
-train_loader = DataLoader(train_data, batch_size=batch_size, num_workers= num_workers) #sampler=train_sampler, num_workers=1 )# sampler=SubsetRandomSampler() )
-valid_loader =  DataLoader(valid_data, batch_size=batch_size, num_workers= num_workers)
-test_loader =  DataLoader(valid_data, batch_size=batch_size, num_workers= num_workers)
+train_loader = DataLoader(train_data, batch_size=config.batch_size, num_workers= config.num_workers) #sampler=train_sampler, num_workers=1 )# sampler=SubsetRandomSampler() )
+valid_loader =  DataLoader(valid_data, batch_size=config.batch_size, num_workers= config.num_workers)
+test_loader =  DataLoader(valid_data, batch_size=config.batch_size, num_workers= config.num_workers)
 
+
+print("Logging model")
+embeds = next(iter(valid_loader))
+logger.add_graph(model, [embeds['mhc_embed'], embeds['ag_embed']] )
 # print("Build Model")
 # model = MHCModel(input_size, 1)
 # model.to(device)
 criterion = torch.nn.MSELoss() 
-optimizer = torch.optim.Adam(model.parameters(), lr= learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr= config.learning_rate)
 # let learning_rate decrease by 50% at 500, 1000 and 2000-th epoch
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [500, 1000, 2000], gamma=0.5)
 
 
 print("Start training")
-os.makedirs("checkpoints", exist_ok=True)
 # Training the Model
 last_loss = 1000
-for epoch in range(num_epochs):
+model.to(device)
+for epoch in range(config.num_epochs):
     model.train()
     running_loss = 0.0
     for embeds in tqdm(train_loader, total=len(train_loader)):
@@ -81,7 +83,7 @@ for epoch in range(num_epochs):
     running_loss /= len(train_loader)
     print('epoch [%d] loss: %.7f' % (epoch, running_loss))
     logger.add_scalar('Loss/train',running_loss, epoch) 
-    PATH = f'checkpoints/model.best.pth'
+    PATH = f'{LOG_DIR}/model.best.pth'
     if running_loss < last_loss:
         last_loss = min(last_loss, running_loss)
         torch.save({'model_state_dict': model.state_dict(),         

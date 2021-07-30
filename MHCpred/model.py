@@ -102,7 +102,6 @@ class MHCModel(nn.Module):
 
         # Turn (batch_size x hidden_size x seq_len) back into (seq_len x batch_size x hidden_size) for RNN
         p = x.permute(2, 0, 1)
-        print(p.size())
         seq_len, batch_size, hidden_size = p.size()
         output, hidden = self.gru(p, hidden) ## output for seq2seq, last hidden for classification 
         # conv_seq_len = output.size(0)
