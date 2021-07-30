@@ -5,7 +5,6 @@ import pandas as pd
 
 import torch 
 from torch.utils.data.dataset import Dataset
-from jax_unirep import get_reps
 from typing import Dict, Sequence, Tuple, Any 
 
 
@@ -60,7 +59,8 @@ class DataBundle:
             if seq not in self.pesudo2idx: continue
             ba = pd.read_table(p, header=None, sep=" ", names= ['unknown','epitope','affinity'])
             ## # each of the arrays will be of shape (len(sequences), 1900),
-            # h_avg, h_final, c_final= get_reps(ba['epitope'].to_list())
+            ## require: pip install jax_unirep
+            # h_avg, h_final, c_final= jax_unirep.get_reps(ba['epitope'].to_list())
             h_avg = np.load(f"{p}.unirep.npy")
             ba['pseudo_idx'] = self.pesudo2idx[seq]
             self.pseudo2ba[seq] = [ba, h_avg]
@@ -72,6 +72,7 @@ class DataBundle:
             if seq not in self.pesudo2idx: continue
             el = pd.read_table(p, header=None, sep=" ", names= ['unknown','epitope','affinity'])
             ## # each of the arrays will be of shape (len(sequences), 1900),
+            ## require: pip install jax_unirep
             # h_avg, h_final, c_final= get_reps(el['epitope'].to_list())
             h_avg = np.load(f"{p}.unirep.npy")
             el['pseudo_idx'] = self.pesudo2idx[seq]
@@ -121,11 +122,6 @@ class MHCDataset(Dataset):
         return {'mhc_embed': self.mhc_embed[idx], 'ag_embed': self.ag_embed[idx], 'target': self.affinity[idx]}
     def __len__(self):
         return len(self.affinity)
-
-
- 
-
-
 
 
 
