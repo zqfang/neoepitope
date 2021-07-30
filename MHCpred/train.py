@@ -23,31 +23,33 @@ logger = SummaryWriter(log_dir = "checkpoints")
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-data = DataBundle(alleles= mhc_allel_filename, 
-                  mhc_psudo= pesudo_filename, 
-                  ba_el_dir= peptide_ba_el_dir )
-
-# preprocess data
-data.parse_ba()
-data.parse_el()
-data.concat()
-data.train_val_test_split(seed=1234)
+# data = DataBundle(alleles= mhc_allel_filename, 
+#                   mhc_psudo= pesudo_filename, 
+#                   ba_el_dir= peptide_ba_el_dir )
+print("Build Model")
+model = MHCModel(input_size, 1)
+model.to(device)
+# # preprocess data
+# data.parse_ba()
+# data.parse_el()
+# data.concat()
+# data.train_val_test_split(seed=1234)
 # joblib.dump("/data/bases/fangzq/ImmunoRep/databundle.pkl",filename = data)
-# data = joblib.load("/data/bases/fangzq/ImmunoRep/databundle.pkl")
+data = joblib.load(DATA_BUNDLE)
 train_data = MHCDataset(data, data.train)
 valid_data = MHCDataset(data, data.val)
-# test_data = MHCDataset(data, test)
+test_data = MHCDataset(data, data.test)
 
 print("Prepare DataLoader")
 train_loader = DataLoader(train_data, batch_size=batch_size, num_workers= num_workers) #sampler=train_sampler, num_workers=1 )# sampler=SubsetRandomSampler() )
 valid_loader =  DataLoader(valid_data, batch_size=batch_size, num_workers= num_workers)
+test_loader =  DataLoader(valid_data, batch_size=batch_size, num_workers= num_workers)
 
-
-print("Build Model")
-model = MHCModel(input_size, 1)
-model.to(device)
+# print("Build Model")
+# model = MHCModel(input_size, 1)
+# model.to(device)
 criterion = torch.nn.MSELoss() 
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr= learning_rate)
 # let learning_rate decrease by 50% at 500, 1000 and 2000-th epoch
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [500, 1000, 2000], gamma=0.5)
 
