@@ -61,7 +61,6 @@ test_loss = 0
 model.eval()
 with torch.no_grad():
     for i, embeds  in enumerate(test_loader):
-        if i == 4: break
         inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
         inp_mhc = inp_mhc.to(device)
         inp_ag = inp_ag.to(device)
