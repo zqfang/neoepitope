@@ -73,9 +73,12 @@ print("Start training")
 last_loss = 1000
 total_steps = 0
 model.to(device)
+
 for epoch in range(config.num_epochs):
     running_loss = 0.0
-    for i, embeds in enumerate(tqdm(train_loader, total=len(train_loader))):
+    # outer = tqdm.tqdm(total=len(train_loader), desc='Train', position=0)
+    for i, embeds in enumerate(tqdm(train_loader, total=len(train_loader), desc='Train', position=0)):
+        # outer.update(1)
         model.train()
         inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
         inp_mhc = inp_mhc.to(device)
@@ -97,7 +100,7 @@ for epoch in range(config.num_epochs):
             model.eval()
             valid_loss = 0
             with torch.no_grad():
-                for embeds in tqdm(valid_loader, total=len(valid_loader)):
+                for embeds in tqdm(valid_loader, total=len(valid_loader), desc='Valid', position=1):
                     inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
                     inp_mhc = inp_mhc.to(device)
                     inp_ag = inp_ag.to(device)
@@ -106,7 +109,7 @@ for epoch in range(config.num_epochs):
                     valid_loss += criterion(outputs, targets) # 
             valid_loss /= len(valid_loader)
             scheduler.step(valid_loss)
-            print('epoch [%d], step [%d], lr [%.7f],  train loss: %.7f, valid loss: %.7f' % (epoch, i, optimizer.param_groups[0]['lr'], train_loss, valid_loss))
+            tqdm.write('epoch [%d], step [%d], lr [%.7f],  train loss: %.7f, valid loss: %.7f' % (epoch, i, optimizer.param_groups[0]['lr'], train_loss, valid_loss))
             total_steps = len(train_loader)*epoch + i
             logger.add_scalar('Loss/valid', valid_loss, total_steps) 
             logger.add_scalar('Loss/train', train_loss, total_steps) 
