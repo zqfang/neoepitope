@@ -61,6 +61,7 @@ test_loss = 0
 model.eval()
 with torch.no_grad():
     for i, embeds  in enumerate(test_loader):
+        if i == 4: break
         inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
         inp_mhc = inp_mhc.to(device)
         inp_ag = inp_ag.to(device)
@@ -76,18 +77,18 @@ with torch.no_grad():
         pearson.append(pr)
         spearman_pval.append(pval_sr)
         pearson_pval.append(pval_pr)
-        print(f"batch {i}, test loss: {loss}, speraman's r: {sr}, pearson's r: {pr}")
+        print(f"batch {i}, test loss: {loss:.7f}, speraman's r: {sr:.7f}, pearson's r: {pr:.7f}")
 
 test_loss /= len(test_loader)
 
 print('averge test loss: %.7f' % test_loss)
 
-preds = np.stack(preds)
-y = np.stack(y)
+preds = np.stack(preds).flatten()
+y = np.stack(y).flatten()
 avg_sp, spval = stat.spearmanr(preds, y)
 avg_pr, ppval = stat.pearsonr(preds, y)
-print("averge Pearson's r: %.7f, pval: %.7f "% (avg_pr, ppval))
-print("averge Spearman's r: %.7f, pval: %.7f "% (avg_sp, spval)
+print("averge Pearson's r: %.7f, pval: %d"% (avg_pr, ppval))
+print("averge Spearman's r: %.7f, pval: %d"% (avg_sp, spval))
 
 # plot the scatter
 fig, ax = plt.subplots(figsize=(4,4))

@@ -111,7 +111,7 @@ for epoch in range(config.num_epochs):
                     valid_loss += criterion(outputs, targets) # 
             valid_loss /= len(valid_loader)
             scheduler.step(valid_loss)
-            print('epoch [%d], step [%d], lr [%.7f],  loss: %.7f' % (epoch, i, optimizer.param_groups[0]['lr'], valid_loss))
+            print('epoch [%d], step [%d], lr [%.7f],  train loss: %.7f, valid loss: %.7f' % (epoch, i, optimizer.param_groups[0]['lr'], train_loss, valid_loss))
             total_steps = len(train_loader)*epoch + i
             logger.add_scalar('Loss/valid', valid_loss, total_steps) 
             logger.add_scalar('Loss/train', train_loss, total_steps) 
@@ -124,7 +124,7 @@ for epoch in range(config.num_epochs):
 
     running_loss /= len(train_loader)
     # lr = scheduler.get_last_lr()[-1] # optimizer.param_groups[0]['lr']
-    print('epoch [%d], lr: [%.7f], loss: %.7f' % (epoch, optimizer.param_groups[0]['lr'] , running_loss))
+    print('epoch [%d], lr: [%.7f], train loss: %.7f' % (epoch, optimizer.param_groups[0]['lr'] , running_loss))
 
 
 ## now test loss
