@@ -2,7 +2,7 @@
 import argparse 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_bundle", type=str, required=True)
+parser.add_argument("--data_path", type=str, required=True)
 parser.add_argument("--log_dir", type=str, default="checkpoints")
 parser.add_argument("--train", dest="train", action="store_true")
 parser.add_argument("--batch_size", type=int, default= 1000)
@@ -11,8 +11,8 @@ args = parser.parse_args()
 
 
 ## Training settings
-DATA_BUNDLE = args.data_bundle
-# DATA_BUNDLE = "/data/bases/fangzq/ImmunoRep/IEDB/databundle.pkl"
+DATA_BUNDLE = args.data_path
+# DATA_BUNDLE = "/data/bases/fangzq/ImmunoRep/IEDB/"
 # mhc_allel_filename = "IEDB/data/allelenames"
 # pesudo_filename = "IEDB/data/MHC_pseudo.dat"
 # peptide_ba_el_dir = "IEDB/data/threshold/"

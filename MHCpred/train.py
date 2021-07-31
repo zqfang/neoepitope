@@ -13,6 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from datasets import MHCDataset, DataBundle
 from model import MHCModel
+
 import joblib
 import config
 
@@ -33,10 +34,16 @@ model = MHCModel(config.input_size, 1)
 # data.concat()
 # data.train_val_test_split(seed=1234)
 # joblib.dump(data, "/data/bases/fangzq/ImmunoRep/databundle.pkl")
-data = joblib.load(config.DATA_BUNDLE)
-train_data = MHCDataset(data, data.train)
-valid_data = MHCDataset(data, data.val)
-test_data = MHCDataset(data, data.test)
+# data = joblib.load(config.DATA_BUNDLE)
+# train_data = MHCDataset(data, data.train)
+# valid_data = MHCDataset(data, data.val)
+# test_data = MHCDataset(data, data.test)
+
+PATH = config.args.data_path
+print("Load data files")
+train_data = joblib.load(os.path.join(PATH, "MHCDataset.train.pkl"))
+valid_data = joblib.load(os.path.join(PATH, "MHCDataset.valid.pkl"))
+test_data = joblib.load(os.path.join(PATH, "MHCDataset.test.pkl"))
 
 print("Prepare DataLoader")
 train_loader = DataLoader(train_data, batch_size=config.batch_size, num_workers= config.num_workers) #sampler=train_sampler, num_workers=1 )# sampler=SubsetRandomSampler() )
@@ -46,7 +53,7 @@ test_loader =  DataLoader(valid_data, batch_size=config.batch_size, num_workers=
 
 print("Logging model")
 embeds = next(iter(valid_loader))
-logger.add_graph(model, [embeds['mhc_embed'], embeds['ag_embed']] )
+logger.add_graph(model, [embeds['mhc_embed'], embeds['ag_embed']])
 # print("Build Model")
 # model = MHCModel(input_size, 1)
 # model.to(device)
