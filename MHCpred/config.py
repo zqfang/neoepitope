@@ -4,9 +4,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, required=True)
 parser.add_argument("--log_dir", type=str, default="checkpoints")
-parser.add_argument("--train", dest="train", action="store_true")
-parser.add_argument("--batch_size", type=int, default= 1000)
-parser.add_argument("--eval", dest="eval", action="store_true")
+parser.add_argument("--batch_size", type=int, default= 100)
 args = parser.parse_args()
 
 
