@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import glob,sys,os,json
 from datetime import datetime
+from pandas.core.indexing import check_bool_indexer
 from tqdm import tqdm
 import torch
 import torch.nn as nn
@@ -18,7 +19,7 @@ import joblib
 import config
 
 LOG_DIR = config.args.log_dir
-os.makedirs("checkpoints", exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
 logger = SummaryWriter(log_dir = LOG_DIR)
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -60,17 +61,27 @@ logger.add_graph(model, [embeds['mhc_embed'], embeds['ag_embed']])
 criterion = torch.nn.MSELoss() 
 optimizer = torch.optim.Adam(model.parameters(), lr= config.learning_rate)
 # let learning_rate decrease by 50% at 500, 1000 and 2000-th epoch
-scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [500, 1000, 2000], gamma=0.5)
+#scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [500, 1000, 2000], gamma=0.5)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.5, verbose=True,
+                                                        threshold=1e-4, cooldown=10, min_lr=1e-5)
+## load pretrain model
+weight = '{LOG_DIR}/model.best.pth'
+if os.path.exists(weight):
+    print(f"Load pretrain model: {weight}")
+    checkpoint = torch.load(weight)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
 
 print("Start training")
 # Training the Model
 last_loss = 1000
+total_steps = 0
 model.to(device)
 for epoch in range(config.num_epochs):
     model.train()
     running_loss = 0.0
-    for embeds in tqdm(train_loader, total=len(train_loader)):
+    for i, embeds in enumerate(tqdm(train_loader, total=len(train_loader))):
         inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
         inp_mhc = inp_mhc.to(device)
         inp_ag = inp_ag.to(device)
@@ -82,34 +93,39 @@ for epoch in range(config.num_epochs):
         loss = criterion(outputs, targets) # 
         loss.backward()
         optimizer.step()
-        scheduler.step()
-
+        # scheduler.step()
         # print statistics
-        running_loss += loss.item()   # detach from tensor
+        train_loss = loss.item() # to cpu
+        running_loss += train_loss
+        if (i + 1) % config.steps_per_validation == 0:
+            # validate
+            model.eval()
+            valid_loss = 0
+            with torch.no_grad():
+                for embeds in tqdm(valid_loader, total=len(valid_loader)):
+                    inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
+                    inp_mhc = inp_mhc.to(device)
+                    inp_ag = inp_ag.to(device)
+                    targets = targets.to(device)
+                    outputs = model(inp_mhc, inp_ag)
+                    valid_loss += criterion(outputs, targets) # 
+            valid_loss /= len(valid_loader)
+            scheduler.step(valid_loss)
+            print('epoch [%d], step [%d], lr [%.7f],  loss: %.7f' % (epoch, i, optimizer.param_groups[0]['lr'], valid_loss))
+            total_steps = len(train_loader)*epoch + i
+            logger.add_scalar('Loss/valid', valid_loss, total_steps) 
+            logger.add_scalar('Loss/train', train_loss, total_steps) 
+          
+            if valid_loss < last_loss:
+                last_loss = min(last_loss, valid_loss)
+                PATH = f'{LOG_DIR}/model.best.pth'
+                torch.save({'model_state_dict': model.state_dict(),         
+                            'optimizer_state_dict': optimizer.state_dict()}, PATH)
 
     running_loss /= len(train_loader)
-    print('epoch [%d] loss: %.7f' % (epoch, running_loss))
-    logger.add_scalar('Loss/train',running_loss, epoch) 
-    PATH = f'{LOG_DIR}/model.best.pth'
-    if running_loss < last_loss:
-        last_loss = min(last_loss, running_loss)
-        torch.save({'model_state_dict': model.state_dict(),         
-                    'optimizer_state_dict': optimizer.state_dict()}, PATH)
+    # lr = scheduler.get_last_lr()[-1] # optimizer.param_groups[0]['lr']
+    print('epoch [%d], lr: [%.7f], loss: %.7f' % (epoch, optimizer.param_groups[0]['lr'] , running_loss))
 
-    # validate
-    model.eval()
-    with torch.no_grad():
-        valid_loss = 0
-        for embeds in tqdm(valid_loader, total=len(valid_loader)):
-            inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
-            inp_mhc = inp_mhc.to(device)
-            inp_ag = inp_ag.to(device)
-            targets = targets.to(device)
-            outputs = model(inp_mhc, inp_ag)
-            valid_loss += criterion(outputs, targets) # 
-        valid_loss /= len(valid_loader)
-        print('epoch [%d] loss: %.7f' % (epoch, valid_loss))
-        logger.add_scalar('Loss/valid',valid_loss, epoch) 
 
 ## now test loss
 model.eval()
