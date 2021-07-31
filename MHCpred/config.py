@@ -22,6 +22,6 @@ batch_size = args.batch_size
 num_workers = 5
 learning_rate = 0.001
 num_epochs = 100
-steps_per_validation  = 300
+steps_per_validation  = 500
 
 

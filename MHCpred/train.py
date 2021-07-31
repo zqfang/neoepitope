@@ -79,9 +79,9 @@ last_loss = 1000
 total_steps = 0
 model.to(device)
 for epoch in range(config.num_epochs):
-    model.train()
     running_loss = 0.0
     for i, embeds in enumerate(tqdm(train_loader, total=len(train_loader))):
+        model.train()
         inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
         inp_mhc = inp_mhc.to(device)
         inp_ag = inp_ag.to(device)
