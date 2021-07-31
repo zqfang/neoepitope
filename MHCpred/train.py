@@ -68,7 +68,7 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=
 weight = '{LOG_DIR}/model.best.pth'
 if os.path.exists(weight):
     print(f"Load pretrain model: {weight}")
-    checkpoint = torch.load(weight)
+    checkpoint = torch.load(weight, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
