@@ -2,7 +2,7 @@ import glob, sys, os, json
 import numpy as np
 import pandas as pd
 
-from tqdm import tqdm
+from tqdm.auto import tqdm # tqdm.auto, make tqdm works perfectly in notebook
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -100,7 +100,7 @@ for epoch in range(config.num_epochs):
             model.eval()
             valid_loss = 0
             with torch.no_grad():
-                for embeds in tqdm(valid_loader, total=len(valid_loader), desc='Valid', position=1):
+                for embeds in tqdm(valid_loader, total=len(valid_loader), desc='Valid', position=1, leave=False): # leave=False, nested loops for tqdm
                     inp_mhc, inp_ag, targets = embeds['mhc_embed'], embeds['ag_embed'], embeds['target']
                     inp_mhc = inp_mhc.to(device)
                     inp_ag = inp_ag.to(device)

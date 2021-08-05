@@ -87,6 +87,7 @@ class MHCModel(nn.Module):
               
         self.hidden_size *= 2
         self.gru = nn.GRU(self.hidden_size, self.hidden_size, n_layers, dropout=0, bidirectional=True)
+        #self.fc = nn.Linear(self.hidden_size*2, self.hidden_size)
         self.attn = nn.MultiheadAttention(self.hidden_size, num_heads=8) # Note: must self.hidden_size // num_heads == 0
         self.ffn = torch.nn.Sequential(torch.nn.Linear(self.hidden_size*2, self.hidden_size),
                                        #torch.nn.BatchNorm1d(self.hidden_size),
@@ -131,3 +132,36 @@ class LayerNorm(nn.Module):
         norm = self.alpha * (x - x.mean(dim=-1, keepdim=True)) \
         / (x.std(dim=-1, keepdim=True) + self.eps) + self.bias
         return norm
+    
+
+class Attention(nn.Module):
+    def __init__(self, feature_dim, step_dim, context_dim):
+        super(Attention, self).__init__()
+        self.feature_dim = feature_dim
+        self.step_dim = step_dim
+        self.context_dim = context_dim
+        self.tanh = nn.Tanh()
+
+        weight = torch.zeros(feature_dim, context_dim)
+        nn.init.kaiming_uniform_(weight)
+        self.weight = nn.Parameter(weight)
+        self.b = nn.Parameter(torch.zeros(step_dim, context_dim))
+
+        u = torch.zeros(context_dim, 1)
+        nn.init.kaiming_uniform_(u)
+        self.context_vector = nn.Parameter(u)
+
+    def forward(self, x):
+        eij = torch.matmul(x, self.weight)
+        # eij = [batch_size, seq_len, context_dim]
+        eij = self.tanh(torch.add(eij, self.b))
+        # eij = [batch_size, seq_len, context_dim]
+        v = torch.exp(torch.matmul(eij, self.context_vector))  # dot product
+        # v = [batch_size, seq_len, 1]
+        v = v / (torch.sum(v, dim=1, keepdim=True))
+        # v = [batch_size, seq_len, 1]
+        weighted_input = x * v
+        # weighted_input = [batch_size, seq_len, 2*hidden_dim]             -> 2 : bidirectional
+        s = torch.sum(weighted_input, dim=1)
+        # s = [batch_size, 2*hidden_dim]                                   -> 2 : bidirectional
+        return s

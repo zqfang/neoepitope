@@ -82,13 +82,15 @@ test_loss /= len(test_loader)
 
 print('averge test loss: %.7f' % test_loss)
 
-preds = np.stack(preds).flatten()
-y = np.stack(y).flatten()
+preds = np.concatenate(preds)
+y = np.concatenate(y)
 avg_sp, spval = stat.spearmanr(preds, y)
 avg_pr, ppval = stat.pearsonr(preds, y)
 print("averge Pearson's r: %.7f, pval: %d"% (avg_pr, ppval))
 print("averge Spearman's r: %.7f, pval: %d"% (avg_sp, spval))
 
+out = np.stack([y, preds])
+np.save("preds.npy", out)
 # plot the scatter
 fig, ax = plt.subplots(figsize=(4,4))
 ax.scatter(preds, y)
