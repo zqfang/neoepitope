@@ -131,24 +131,33 @@ class MHCDataset(Dataset):
 
 
 class MHCEvalDataset(Dataset):
-    def __init__(self, mhc_pseudo: List[str], antigen: List[str], target: List[int] ):
-        """
-        epitope
-        partition:  indices of train, val, test.
-        """
-        # ag: antigen
-        ag_embed = self._get_embed(antigen)
+    def __init__(self, data: Union[pd.DataFrame, str], mhc2pesudo: Union[pd.DataFrame, str]):
+        self.data = data
+        if not isinstance(mhc2pesudo, pd.DataFrame):
+            mhc2pesudo = pd.read_csv(mhc2pesudo)
+            # 3 column df
+            # hla, hla_alias, pesudo_seq
+        self.mhc2pesudo_dict = {row['hla']:row['pesudo_seq'] for _, row in mhc2pesudo.iterrows()}
+        
+        if not isinstance(data, pd.DataFrame):
+            data = pd.read_table(data, sep=" ", header=None, 
+                                 names=['species','hla','seq_len','antigen','target'])
+        data['pseudo'] = data['hla'].map(self.mhc2pesudo_dict)
+        data = data.dropna()
+
+        # get embeds
+        ag_embed = self._get_embed(data['antigen'].to_list())
         self.ag_embed = torch.from_numpy(ag_embed.astype(np.float32))
-        mhc_embed = self._get_embed(mhc_pseudo)
-        self.mhc_embed = torch.from_numpy(self.mhc_embed.astype(np.float32))
-        self.target = torch.as_tensor(target, dtype=torch.long)
+        mhc_embed = self._get_embed(data['pseudo'].to_list())
+        self.mhc_embed = torch.from_numpy(mhc_embed.astype(np.float32))
+        self.target = torch.as_tensor(data['target'].values, dtype=torch.long)
 
     def __getitem__(self, idx):
-        ## multi-class classification need longTensor for y
-        # self.targets = self.targets.type(torch.LongTensor)
+        # ag: antigen
         return {'mhc_embed': self.mhc_embed[idx], 'ag_embed': self.ag_embed[idx], 'target': self.target[idx]}
+
     def __len__(self):
-        return len(self.affinity)
+        return len(self.target)
 
     def _get_embed(self, aa: List[str]) -> np.ndarray: 
         h_avg, h_final, c_final= get_reps(aa)

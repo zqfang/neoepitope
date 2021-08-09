@@ -14,7 +14,7 @@ DATA_BUNDLE = args.data_path
 # mhc_allel_filename = "IEDB/data/allelenames"
 # pesudo_filename = "IEDB/data/MHC_pseudo.dat"
 # peptide_ba_el_dir = "IEDB/data/threshold/"
-
+mhc2psedo_filename = "IEDB/data/mhc2pseudo.csv"
 ## Hyperparameters
 class_num = 1
 input_size = 1900

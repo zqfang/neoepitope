@@ -1,19 +1,18 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.stats.stats import spearmanr
+
 import seaborn as sns
 import glob,sys,os,json
 from datetime import datetime
 import joblib
 import scipy.stats as stat
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
 
 from tqdm import tqdm
 from torch.utils.data.dataloader import DataLoader
-from datasets import MHCDataset, DataBundle
+from datasets import MHCDataset, MHCEvalDataset
 from model import MHCModel
 import config
 
@@ -33,7 +32,9 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 PATH = config.args.data_path
 print("Load data files")
-test_data = joblib.load(os.path.join(PATH, "MHCDataset.test.pkl"))
+# test_data = joblib.load(os.path.join(PATH, "MHCDataset.test.pkl"))
+
+test_data = MHCEvalDataset(data=PATH, mhc2pesudo=config.mhc2psedo_filename)
 test_loader =  DataLoader(test_data, batch_size=config.batch_size, num_workers= config.num_workers)
 
 
@@ -67,8 +68,12 @@ with torch.no_grad():
         y.append(targets.numpy())
         targets = targets.to(device)
         outputs = model(inp_mhc, inp_ag)
-        preds.append(outputs.detach().cpu().numpy())
         loss = criterion(outputs, targets).item() # 
+        outputs = outputs.detach().cpu().numpy()
+        # convert output to binary value here
+        #
+        preds.append(outputs)
+        
         test_loss += loss
         sr, pval_sr = stat.spearmanr(preds[-1], y[-1])
         pr, pval_pr = stat.pearsonr(preds[-1], y[-1])
