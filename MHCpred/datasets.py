@@ -5,7 +5,7 @@ import pandas as pd
 
 import torch 
 from torch.utils.data.dataset import Dataset
-from typing import Dict, Sequence, Tuple, Any 
+from typing import Dict, Sequence, Tuple, Any, List, Union 
 
 
 class DataBundle:
@@ -123,5 +123,33 @@ class MHCDataset(Dataset):
     def __len__(self):
         return len(self.affinity)
 
+    def _pesudo2embed(self) -> Dict[str, np.ndarray]: 
+        sequences = self.mhc['psudo_seq'].to_list()
+        self.pesudo2idx = {seq: i for i, seq in enumerate(sequences)}
+        h_avg, h_final, c_final= get_reps(sequences)
 
 
+
+class MHCEvalDataset(Dataset):
+    def __init__(self, mhc_pseudo: List[str], antigen: List[str], target: List[int] ):
+        """
+        epitope
+        partition:  indices of train, val, test.
+        """
+        # ag: antigen
+        ag_embed = self._get_embed(antigen)
+        self.ag_embed = torch.from_numpy(ag_embed.astype(np.float32))
+        mhc_embed = self._get_embed(mhc_pseudo)
+        self.mhc_embed = torch.from_numpy(self.mhc_embed.astype(np.float32))
+        self.target = torch.as_tensor(target, dtype=torch.long)
+
+    def __getitem__(self, idx):
+        ## multi-class classification need longTensor for y
+        # self.targets = self.targets.type(torch.LongTensor)
+        return {'mhc_embed': self.mhc_embed[idx], 'ag_embed': self.ag_embed[idx], 'target': self.target[idx]}
+    def __len__(self):
+        return len(self.affinity)
+
+    def _get_embed(self, aa: List[str]) -> np.ndarray: 
+        h_avg, h_final, c_final= get_reps(aa)
+        return h_avg
