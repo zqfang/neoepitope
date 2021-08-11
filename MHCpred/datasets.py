@@ -5,6 +5,7 @@ import pandas as pd
 
 import torch 
 from torch.utils.data.dataset import Dataset
+from jax_unirep import get_reps
 from typing import Dict, Sequence, Tuple, Any, List, Union 
 
 
@@ -132,19 +133,18 @@ class MHCDataset(Dataset):
 
 class MHCEvalDataset(Dataset):
     def __init__(self, data: Union[pd.DataFrame, str], mhc2pesudo: Union[pd.DataFrame, str]):
-        self.data = data
         if not isinstance(mhc2pesudo, pd.DataFrame):
             mhc2pesudo = pd.read_csv(mhc2pesudo)
             # 3 column df
             # hla, hla_alias, pesudo_seq
-        self.mhc2pesudo_dict = {row['hla']:row['pesudo_seq'] for _, row in mhc2pesudo.iterrows()}
+        self.mhc2pesudo_dict = {row['hla']:row['pseudo_seq'] for _, row in mhc2pesudo.iterrows()}
         
         if not isinstance(data, pd.DataFrame):
             data = pd.read_table(data, sep=" ", header=None, 
                                  names=['species','hla','seq_len','antigen','target'])
         data['pseudo'] = data['hla'].map(self.mhc2pesudo_dict)
         data = data.dropna()
-
+        self.data = data
         # get embeds
         ag_embed = self._get_embed(data['antigen'].to_list())
         self.ag_embed = torch.from_numpy(ag_embed.astype(np.float32))

@@ -19,23 +19,13 @@ import config
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-# data = DataBundle(alleles= mhc_allel_filename, 
-#                   mhc_psudo= pesudo_filename, 
-#                   ba_el_dir= peptide_ba_el_dir )
 
-# data.parse_ba()
-# data.parse_el()
-# data.concat()
-# train, val, test = data.train_val_test_split(seed=1234)
-# print("Prepare DataLoader ")
-# test_data = MHCDataset(data, test)
-
-PATH = config.args.data_path
 print("Load data files")
+# PATH = config.args.data_path
 # test_data = joblib.load(os.path.join(PATH, "MHCDataset.test.pkl"))
-
+PATH = config.eval_filename
 test_data = MHCEvalDataset(data=PATH, mhc2pesudo=config.mhc2psedo_filename)
-test_loader =  DataLoader(test_data, batch_size=config.batch_size, num_workers= config.num_workers)
+test_loader =  DataLoader(test_data, batch_size=config.batch_size, num_workers= config.num_workers, shuffle=False)
 
 
 print("Load Model")
@@ -49,7 +39,7 @@ model.load_state_dict(checkpoint['model_state_dict'])
 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
 model.to(device)
-## now test loss
+## prediction
 model.eval()
 preds = []
 y = []
