@@ -3,6 +3,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, required=True)
+parser.add_argument("--mhc", type=str, help="mapping of mhc allele name to pseudo_seq")
 parser.add_argument("--log_dir", type=str, default="checkpoints")
 parser.add_argument("--batch_size", type=int, default= 100)
 args = parser.parse_args()
@@ -14,8 +15,8 @@ DATA_BUNDLE = args.data_path
 # mhc_allel_filename = "IEDB/data/allelenames"
 # pesudo_filename = "IEDB/data/MHC_pseudo.dat"
 # peptide_ba_el_dir = "IEDB/data/threshold/"
-mhc2psedo_filename = "/data/bases/fangzq/ImmunoRep/IEDB/mhc2pseudo.csv"
-eval_filename = "/data/bases/fangzq/ImmunoRep/IEDB/BD2013.bi.humanHLA.txt"
+mhc2psedo_filename = args.mhc #"/data/bases/fangzq/ImmunoRep/IEDB/mhc2pseudo.csv"
+eval_filename = args.data_path #"/data/bases/fangzq/ImmunoRep/IEDB/BD2013.bi.humanHLA.txt"
 ## Hyperparameters
 class_num = 1
 input_size = 1900

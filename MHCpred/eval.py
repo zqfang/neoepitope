@@ -19,20 +19,29 @@ import config
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-def topK_ppv(out,topK=100):
+def topK_ppv(out,topK=100,):
     """
     if there is a very large evaluation dataset, the topK chosen would be a oversampling of extremes,
     so the random part is to make sure the sampling is not too bias
     """
-    
-    preds=pd.DataFrame(out,columns=['y','preds'])
-    sample_size=topK*10
-    if topK*10>len(preds):
-        sample_size=len(preds)
-    preds = preds.sample(sample_size,random_state=2021).sort_values('preds',ascending=True).iloc[:topK,:]
-    tn, fp, fn, tp = confusion_matrix(preds['y'].tolist(), preds['preds'].tolist()).ravel()
-    ppv = tp / (tp + fp)
-    return ppv
+    columns = ['y', 'preds'] + ["c" + str(i) for i in range(50, 501,50)]
+    preds=pd.DataFrame(out,columns=columns)
+    #if sample_size is None: sample_size=topK*10
+    #sample_size=min(len(preds), sample_size)
+    preds = preds.sort_values('preds', ascending=False)
+    # preds = preds.sample(sample_size, random_state=2021).sort_values('preds',ascending=True).iloc[:topK,:]
+    cut = []
+    ppvs = []
+    for col in columns[2:]:
+        y = preds.iloc[:topK]['y'].astype(int).tolist()
+        c = int(col[1:])
+        p = ba_score2binary(preds.iloc[:topK]['preds'], cutoff=c)
+        tn, fp, fn, tp = confusion_matrix(y, p).ravel()
+        ppv = tp / (tp + fp)
+        cut.append(c)
+        ppvs.append(ppv)
+        print(f"cutoff: {col[1:]}, ppv: {ppv}")
+    return cut, ppvs
     
 def ba_score2binary(ba_score,cutoff):
     """
@@ -49,8 +58,10 @@ PATH = config.args.data_path
 print("Load data files")
 # PATH = config.args.data_path
 # test_data = joblib.load(os.path.join(PATH, "MHCDataset.test.pkl"))
-PATH = config.eval_filename
-test_data = MHCEvalDataset(data=PATH, mhc2pesudo=config.mhc2psedo_filename)
+# PATH = config.eval_filename
+# test_data = MHCEvalDataset(data=PATH, mhc2pesudo=config.mhc2psedo_filename)
+test_data = joblib.load(PATH)
+
 test_loader =  DataLoader(test_data, batch_size=config.batch_size, num_workers= config.num_workers, shuffle=False)
 
 
@@ -91,13 +102,14 @@ with torch.no_grad():
         preds.append(outputs)
         
         test_loss += loss
-        sr, pval_sr = stat.spearmanr(preds[-1], y[-1])
-        pr, pval_pr = stat.pearsonr(preds[-1], y[-1])
-        spearman.append(sr)
-        pearson.append(pr)
-        spearman_pval.append(pval_sr)
-        pearson_pval.append(pval_pr)
-        print(f"batch {i}, test loss: {loss:.7f}, speraman's r: {sr:.7f}, pearson's r: {pr:.7f}")
+        # sr, pval_sr = stat.spearmanr(preds[-1], y[-1])
+        # pr, pval_pr = stat.pearsonr(preds[-1], y[-1])
+        # spearman.append(sr)
+        # pearson.append(pr)
+        # spearman_pval.append(pval_sr)
+        # pearson_pval.append(pval_pr)
+        # print(f"batch {i}, test loss: {loss:.7f}, speraman's r: {sr:.7f}, pearson's r: {pr:.7f}")
+        print(f"batch {i}, test loss: {loss:.7f}")
 
 test_loss /= len(test_loader)
 
@@ -107,10 +119,10 @@ preds = np.concatenate(preds)
 y = np.concatenate(y)
 
 #only be evaluted when both y and pred are continous value 
-avg_sp, spval = stat.spearmanr(preds, y)
-avg_pr, ppval = stat.pearsonr(preds, y)
-print("averge Pearson's r: %.7f, pval: %d"% (avg_pr, ppval))
-print("averge Spearman's r: %.7f, pval: %d"% (avg_sp, spval))
+# avg_sp, spval = stat.spearmanr(preds, y)
+# avg_pr, ppval = stat.pearsonr(preds, y)
+# print("averge Pearson's r: %.7f, pval: %d"% (avg_pr, ppval))
+# print("averge Spearman's r: %.7f, pval: %d"% (avg_sp, spval))
 
 preds_binares = []
 preds_header = []
@@ -121,7 +133,7 @@ for cutoff in range(50, 501, 50):
     print(confusion_matrix(y, pred_b))
 # y = ba_score2binary(y,100) # if y of the data is not binary
 out = np.stack([y, preds] + preds_binares, axis=1)
-np.save("preds.npy", out)
+np.save(os.path.join(config.args.log_dir, "preds.npy"), out)
 # plot the scatter
 # fig, ax = plt.subplots(figsize=(4,4))
 # ax.scatter(preds, y)
@@ -129,6 +141,6 @@ np.save("preds.npy", out)
 # ax.set_ylabel("True")
 # ax.set_title("Pred-True scatterplot")
 # fig.savefig("test.scatter.png", dpi=300)
-print(topK_ppv(out[:,[0,2]], 100)) # cutoff 100
+topK_ppv(out, 100) # cutoff 100
 
 
